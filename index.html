@@ -87,6 +87,21 @@ input:focus,textarea:focus,select:focus{outline:none;border-color:var(--pri);box
 .q-text{font-size:16px;font-weight:600;line-height:1.5;color:var(--txt);margin-bottom:4px}
 .q-number{font-size:12px;color:var(--pri);font-weight:700;margin-bottom:6px}
 /* STF badge */
+.phrase-card{background:#fff;border:1px solid var(--border);border-radius:8px;padding:10px 12px;margin-bottom:6px;position:relative}
+.phrase-card .phrase-num{font-size:11px;font-weight:700;color:var(--pri);margin-bottom:4px}
+.phrase-card .phrase-text{font-size:14px;line-height:1.5;white-space:pre-wrap;word-wrap:break-word}
+.phrase-card textarea{font-size:14px;min-height:50px;margin-top:4px}
+.phrase-card .phrase-acts{display:flex;gap:4px;margin-top:6px;flex-wrap:wrap}
+.phrase-card .phrase-acts button{padding:6px 10px;font-size:12px;border-radius:6px;border:1px solid var(--border);background:#f9fafb;cursor:pointer;font-weight:600;color:var(--txt2);transition:background .15s}
+.phrase-card .phrase-acts button:active{transform:scale(.96)}
+.phrase-card .phrase-acts .pa-rev{color:var(--pri);border-color:var(--pri)}
+.phrase-card .phrase-acts .pa-del{color:var(--err);border-color:var(--err)}
+.phrase-card .phrase-acts .pa-ok{color:var(--ok);border-color:var(--ok)}
+.phrase-card.editing{border-color:var(--pri);background:#f8faff}
+.phrase-card.reviewed{border-color:var(--ok);background:#f0fdf4}
+.phrases-container{margin-top:8px;max-height:50vh;overflow-y:auto;padding:2px}
+.phrases-actions{display:flex;gap:6px;margin-top:10px;flex-wrap:wrap}
+.phrases-actions .btn{flex:1;min-width:100px}
 .stf-badge{display:inline-block;background:#fef3c7;color:#92400e;font-size:11px;font-weight:600;padding:4px 8px;border-radius:4px;margin-top:8px;line-height:1.4}
 </style>
 </head>
@@ -174,23 +189,26 @@ input:focus,textarea:focus,select:focus{outline:none;border-color:var(--pri);box
 <div id="wizCks" class="hidden">
 <div class="ck-group" id="ckGroup"></div>
 </div>
-<!-- Dictation -->
+<!-- Parágrafos (áudio ou texto) -->
 <div style="margin-top:16px">
+<div id="wizPhrases" class="phrases-container"></div>
+<div id="wizPhrasesActs" class="phrases-actions hidden">
+<button class="btn btn-sm btn-pri" onclick="DM.reviewAll('wiz')">🤖 Revisar tudo com IA</button>
+<button class="btn btn-sm btn-err" onclick="DM.discardAll('wiz')">✖ Descartar tudo</button>
+</div>
+<div style="margin-top:10px;border-top:1px solid var(--border);padding-top:10px">
 <div class="btn-row">
-<button class="btn btn-sm btn-pri" id="btnMic" onclick="startDic()">🎤 Ditar</button>
+<button class="btn btn-sm btn-pri" id="btnMic" onclick="DM.toggle('wiz')">🎤 Ditar parágrafo</button>
 <button class="btn btn-sm btn-ghost" id="btnRepeat" onclick="readQ()">🔊 Repetir</button>
 </div>
-<div id="dicArea" class="dict-area hidden">
-<textarea id="dicTxt" placeholder="Transcrição aparecerá aqui..."></textarea>
-<div class="dict-btns">
-<button class="btn btn-ok btn-sm" onclick="dicInsert()">✅ Inserir</button>
-<button class="btn btn-pri btn-sm" id="btnRevAudio" onclick="dicRevAI()">🤖 Revisar com IA</button>
-<button class="btn btn-err btn-sm" onclick="dicDiscard()">✖ Descartar</button>
+<div id="wizLiveArea" class="dict-area hidden">
+<textarea id="wizLiveTxt" placeholder="Fale... a transcrição aparece aqui" readonly></textarea>
+<div style="text-align:center;margin-top:4px"><button class="btn btn-sm btn-err" onclick="DM.stop('wiz')">🔴 Parar e salvar parágrafo</button></div>
 </div>
+<label style="margin-top:10px">Ou digite:</label>
+<textarea id="wizTxt" rows="2" placeholder="Digite e clique Adicionar..."></textarea>
+<button class="btn btn-sm btn-ghost" style="margin-top:6px" onclick="DM.addManual('wiz')">➕ Adicionar parágrafo digitado</button>
 </div>
-<!-- Manual input -->
-<label style="margin-top:12px">Ou digite:</label>
-<textarea id="wizTxt" rows="3" placeholder="Digite a resposta..."></textarea>
 </div>
 <!-- Confirmed response -->
 <div id="wizResp" class="resp-display hidden"></div>
@@ -256,6 +274,8 @@ input:focus,textarea:focus,select:focus{outline:none;border-color:var(--pri);box
 var EK='e2102277cb453ba42ef4fd93854f35d2:9f8a727e326f21bf088858b8:7e6803a9dd12f71cba93c9fa8c5679eba561fbdb6565d2527a9e72d3b10cdee0bf1061b3f1befc883d1990d332bbc41497babfc01686ea';
 var MODEL='gemini-2.5-pro';
 var API_URL='https://generativelanguage.googleapis.com/v1beta/models/'+MODEL+':generateContent';
+var FLASH_MODEL='gemini-2.5-flash';
+var FLASH_URL='https://generativelanguage.googleapis.com/v1beta/models/'+FLASH_MODEL+':generateContent';
 var WA_NUM='551433123124';
 var API_KEY='';
 var ttsOn=true;
@@ -320,7 +340,7 @@ var TOTAL_STEPS=PERGS.length+1; // +1 for P1
 // ============================================
 // STATE
 // ============================================
-var ST={ident:{},resps:{},wizIdx:0,v1:'',v2:'',v1Blocks:[],activeTab:0};
+var ST={ident:{},resps:{},paras:{},wizIdx:0,v1:'',v2:'',v1Blocks:[],activeTab:0};
 
 // ============================================
 // CRYPTO
@@ -383,108 +403,265 @@ showScreen('tLogin');
 // TTS
 // ============================================
 function toggleTTS(){ttsOn=!ttsOn;document.querySelectorAll('.tts-toggle').forEach(function(b){b.textContent=ttsOn?'🔊':'🔇';});}
+function readQ(){
+var q=document.getElementById('wizQ');
+if(q)speak(q.textContent);
+}
+var _bestVoice=null,_voicesLoaded=false;
+function _loadVoice(){
+if(_voicesLoaded)return;
+var vs=window.speechSynthesis.getVoices();
+if(!vs.length)return;
+_voicesLoaded=true;
+var prefs=['Luciana','Google português','Fernanda','Microsoft Maria'];
+for(var p=0;p<prefs.length;p++){
+ for(var v=0;v<vs.length;v++){
+  if(vs[v].lang.indexOf('pt')===0&&vs[v].name.indexOf(prefs[p])>-1){_bestVoice=vs[v];return;}
+ }
+}
+for(var v=0;v<vs.length;v++){if(vs[v].lang.indexOf('pt')===0){_bestVoice=vs[v];return;}}
+}
+if(window.speechSynthesis.onvoiceschanged!==undefined)window.speechSynthesis.onvoiceschanged=_loadVoice;
+_loadVoice();
 function speak(txt,cb){
 if(!ttsOn){if(cb)cb();return;}
 window.speechSynthesis.cancel();
+_loadVoice();
 var u=new SpeechSynthesisUtterance(txt);
-u.lang='pt-BR';u.rate=1.05;
+u.lang='pt-BR';u.rate=1.0;u.pitch=1.0;
+if(_bestVoice)u.voice=_bestVoice;
 u.onend=function(){if(cb)cb();};
 u.onerror=function(){if(cb)cb();};
 window.speechSynthesis.speak(u);
 }
 
 // ============================================
-// STT (SPEECH RECOGNITION)
+// DICTATION MANAGER (phrase-based)
 // ============================================
-var recog=null,shouldRestart=false,sttTarget=null,sttTimeout=null;
-function initSTT(){
-var SR=window.SpeechRecognition||window.webkitSpeechRecognition;
-if(!SR){alert('Navegador não suporta reconhecimento de voz.');return false;}
-recog=new SR();
-recog.lang='pt-BR';recog.continuous=false;recog.interimResults=true;
-recog.onresult=function(e){
-var t='';for(var i=0;i<e.results.length;i++){t+=e.results[i][0].transcript;}
-if(sttTarget)sttTarget.value=t;
+var DM={
+recog:null,active:null,recording:false,shouldRestart:false,
+accumulated:'',sttTimeout:null,
+phrases:{},  // ctxId -> [{text,reviewed,editing}]
+liveEl:null, // current live textarea
+init:function(){
+ if(this.recog)return true;
+ var SR=window.SpeechRecognition||window.webkitSpeechRecognition;
+ if(!SR){alert('Navegador não suporta reconhecimento de voz.');return false;}
+ var me=this;
+ me.recog=new SR();me.recog.lang='pt-BR';me.recog.continuous=false;me.recog.interimResults=true;
+ me.recog.onresult=function(e){
+  var t='';for(var i=0;i<e.results.length;i++){
+   if(e.results[i].isFinal){me.accumulated+=e.results[i][0].transcript+' ';t=me.accumulated;}
+   else{t=me.accumulated+e.results[i][0].transcript;}
+  }
+  if(me.liveEl)me.liveEl.value=t;
+ };
+ me.recog.onend=function(){
+  clearTimeout(me.sttTimeout);
+  if(me.shouldRestart){
+   me.sttTimeout=setTimeout(function(){
+    if(me.shouldRestart){try{me.recog.start();}catch(ex){me.stop(me.active);}}
+   },300);
+  }
+ };
+ me.recog.onerror=function(e){
+  if(e.error==='no-speech'&&me.shouldRestart)return;
+  if(e.error==='not-allowed'){alert('Permissão de microfone negada.');me.stop(me.active);}
+ };
+ return true;
+},
+toggle:function(ctx){
+ if(this.recording&&this.active===ctx){this.stop(ctx);return;}
+ if(this.recording){this.stop(this.active);}
+ this.start(ctx);
+},
+start:function(ctx){
+ if(!this.init())return;
+ this.active=ctx;this.recording=true;this.shouldRestart=true;
+ this.accumulated='';
+ if(!this.phrases[ctx])this.phrases[ctx]=[];
+ // Show live area
+ var la=this._liveArea(ctx);if(la)la.classList.remove('hidden');
+ this.liveEl=this._liveTxt(ctx);if(this.liveEl)this.liveEl.value='';
+ // Mic button
+ var mb=this._micBtn(ctx);
+ if(mb){mb.textContent='\u{1f534} Gravando...';mb.classList.add('mic-on');}
+ beepStart();
+ try{this.recog.start();}catch(e){}
+ var me=this;
+ this.sttTimeout=setTimeout(function(){me.stop(ctx);},180000);
+},
+stop:function(ctx){
+ this.shouldRestart=false;this.recording=false;
+ clearTimeout(this.sttTimeout);
+ try{this.recog.stop();}catch(e){}
+ // Mic button
+ var mb=this._micBtn(ctx);
+ if(mb){mb.textContent='\u{1f3a4} Ditar parágrafo';mb.classList.remove('mic-on');}
+ // Hide live area
+ var la=this._liveArea(ctx);if(la)la.classList.add('hidden');
+ // Save phrase if has text
+ var txt=(this.accumulated||'').trim();
+ if(this.liveEl)txt=this.liveEl.value.trim();
+ if(txt){
+  if(!this.phrases[ctx])this.phrases[ctx]=[];
+  this.phrases[ctx].push({text:txt,reviewed:false,editing:false});
+  beepStop();
+ }
+ this.accumulated='';
+ this.active=null;this.liveEl=null;
+ this.persist(ctx);
+ this.render(ctx);
+},
+render:function(ctx){
+ var cont=this._container(ctx);if(!cont)return;
+ var phs=this.phrases[ctx]||[];
+ cont.innerHTML='';
+ var me=this;
+ phs.forEach(function(ph,i){
+  var div=document.createElement('div');
+  div.className='phrase-card'+(ph.editing?' editing':'')+(ph.reviewed?' reviewed':'');
+  if(ph.editing){
+   div.innerHTML='<div class="phrase-num">§'+(i+1)+'</div>'+
+    '<textarea id="phedit_'+ctx+'_'+i+'">'+escHtml(ph.text)+'</textarea>'+
+    '<div class="phrase-acts">'+
+    '<button class="pa-ok" onclick="DM.saveEdit(''+ctx+'','+i+')">\u2705 Salvar</button>'+
+    '<button onclick="DM.cancelEdit(''+ctx+'','+i+')">Cancelar</button></div>';
+  }else{
+   div.innerHTML='<div class="phrase-num">§'+(i+1)+(ph.reviewed?' \u2705 revisado':'')+'</div>'+
+    '<div class="phrase-text">'+escHtml(ph.text)+'</div>'+
+    '<div class="phrase-acts">'+
+    '<button onclick="DM.editPhrase(''+ctx+'','+i+')">\u270f\ufe0f Editar</button>'+
+    '<button class="pa-rev" onclick="DM.reviewPhrase(''+ctx+'','+i+')">\u{1f916} IA</button>'+
+    '<button class="pa-del" onclick="DM.deletePhrase(''+ctx+'','+i+')">\u{1f5d1} Excluir</button></div>';
+  }
+  cont.appendChild(div);
+ });
+ // Show/hide bulk actions
+ var acts=this._actsEl(ctx);
+ if(acts)acts.classList.toggle('hidden',phs.length===0);
+ // Scroll to bottom of container
+ if(phs.length)cont.scrollTop=cont.scrollHeight;
+},
+editPhrase:function(ctx,i){
+ this.phrases[ctx][i].editing=true;this.render(ctx);
+ var el=document.getElementById('phedit_'+ctx+'_'+i);if(el)el.focus();
+},
+saveEdit:function(ctx,i){
+ var el=document.getElementById('phedit_'+ctx+'_'+i);
+ if(el){this.phrases[ctx][i].text=el.value.trim();}
+ this.phrases[ctx][i].editing=false;this.persist(ctx);this.render(ctx);beepOk();
+},
+cancelEdit:function(ctx,i){this.phrases[ctx][i].editing=false;this.render(ctx);},
+deletePhrase:function(ctx,i){if(!confirm('Excluir este parágrafo?'))return;this.phrases[ctx].splice(i,1);this.persist(ctx);this.render(ctx);},
+reviewPhrase:async function(ctx,i){
+ var ph=this.phrases[ctx][i];
+ var prompt='Você é assistente de um Escrivão da Polícia Federal de Bauru/SP.\n'+
+  'Revise o texto abaixo, ditado por voz por um policial durante depoimento.\n'+
+  'Corrija gramática, pontuação e torne a linguagem mais formal e coesa.\n'+
+  'NÃO altere fatos, nomes, números, placas ou informações substantivas.\n'+
+  'Retorne APENAS o texto revisado, sem explicações.\n\n'+
+  'CONTEXTO:\n'+buildCtxResumo()+'\n\nTEXTO DITADO:\n'+ph.text;
+ ph.text='⏳ Revisando com IA...';this.render(ctx);
+ var resp=await callGemini(prompt);
+ if(resp){ph.text=resp;ph.reviewed=true;beepOk();}
+ else{ph.text='(Erro na revisão)';alert('Erro ao revisar.');}
+ this.persist(ctx);this.render(ctx);
+},
+reviewAll:async function(ctx){
+ var phs=this.phrases[ctx]||[];
+ if(!phs.length){alert('Nenhum parágrafo para revisar.');return;}
+ var allTxt=phs.map(function(p,i){return p.text;}).join('\n');
+ showLoading('Revisando parágrafos com IA...');
+ var prompt='Você é assistente de um Escrivão da Polícia Federal de Bauru/SP.\n'+
+  'Revise o texto abaixo, ditado por voz por um policial durante depoimento.\n'+
+  'Corrija gramática, pontuação e torne a linguagem mais formal e coesa.\n'+
+  'NÃO altere fatos, nomes, números, placas ou informações substantivas.\n'+
+  'Mantenha como um texto corrido e coeso (una as frases se fizer sentido).\n'+
+  'Retorne APENAS o texto revisado, sem explicações.\n\n'+
+  'CONTEXTO:\n'+buildCtxResumo()+'\n\nTEXTO DITADO:\n'+allTxt;
+ var resp=await callGemini(prompt);
+ hideLoading();
+ if(resp){
+  this.phrases[ctx]=[{text:resp,reviewed:true,editing:false}];
+  beepOk();
+ }else{alert('Erro ao revisar.');}
+ this.persist(ctx);this.render(ctx);
+},
+insertAll:function(ctx){
+ var phs=this.phrases[ctx]||[];
+ if(!phs.length)return;
+ var allTxt=phs.map(function(p){return p.text;}).join(' ');
+ // Find target field
+ var target=this._targetField(ctx);
+ if(target){
+  var cur=target.value.trim();
+  target.value=cur?(cur+'\n'+allTxt):allTxt;
+  target.scrollIntoView({behavior:'smooth',block:'center'});
+ }
+ this.phrases[ctx]=[];this.render(ctx);beepOk();
+},
+discardAll:function(ctx){
+ if(!confirm('Descartar todos os parágrafos?'))return;
+ this.phrases[ctx]=[];this.persist(ctx);this.render(ctx);
+},
+// Context-specific element getters
+_liveArea:function(ctx){
+ if(ctx==='wiz')return document.getElementById('wizLiveArea');
+ return document.getElementById('dicLive_'+ctx);
+},
+_liveTxt:function(ctx){
+ if(ctx==='wiz')return document.getElementById('wizLiveTxt');
+ return document.getElementById('dicLiveTxt_'+ctx);
+},
+_micBtn:function(ctx){
+ if(ctx==='wiz')return document.getElementById('btnMic');
+ return document.getElementById('micBtn_'+ctx);
+},
+_container:function(ctx){
+ if(ctx==='wiz')return document.getElementById('wizPhrases');
+ return document.getElementById('dicPhrases_'+ctx);
+},
+_actsEl:function(ctx){
+ if(ctx==='wiz')return document.getElementById('wizPhrasesActs');
+ return document.getElementById('dicActs_'+ctx);
+},
+_targetField:function(ctx){
+ if(ctx==='wiz')return document.getElementById('wizTxt');
+ if(ctx==='v2')return null; // V2 handled differently
+ // V1 blocks: ctx = 'v1_0', 'v1_1', etc.
+ return null; // V1 handled differently
+},
+persist:function(ctx){
+ if(ctx==='wiz'){
+  var pg=PERGS[ST.wizIdx];
+  if(pg){ST.paras[pg.id]=(this.phrases[ctx]||[]).map(function(p){return{text:p.text,reviewed:p.reviewed};});}
+  _syncResp();
+ }
+ autoSave();
+},
+loadParas:function(ctx,pgId){
+ var saved=ST.paras[pgId]||[];
+ this.phrases[ctx]=saved.map(function(p){return{text:p.text,reviewed:p.reviewed||false,editing:false};});
+},
+addManual:function(ctx){
+ var el=document.getElementById('wizTxt');
+ if(!el)return;
+ var txt=el.value.trim();
+ if(!txt){shake('wizTxt');return;}
+ if(!this.phrases[ctx])this.phrases[ctx]=[];
+ this.phrases[ctx].push({text:txt,reviewed:false,editing:false});
+ el.value='';
+ this.persist(ctx);this.render(ctx);beepOk();
+},
+reset:function(ctx){if(this.active===ctx)this.stop(ctx);}
 };
-recog.onend=function(){
-clearTimeout(sttTimeout);
-if(shouldRestart){try{recog.start();}catch(e){stopDic();}}
-};
-recog.onerror=function(e){
-if(e.error==='no-speech'&&shouldRestart){return;}
-if(e.error==='not-allowed'){alert('Permissão de microfone negada.');stopDic();}
-};
-return true;
-}
-function startDic(){
-if(!recog&&!initSTT())return;
-var btn=document.getElementById('btnMic');
-if(shouldRestart){stopDic();return;}
-sttTarget=document.getElementById('dicTxt');
-sttTarget.value='';
-document.getElementById('dicArea').classList.remove('hidden');
-document.getElementById('btnRevAudio').classList.remove('hidden');
-document.getElementById('btnRevAudio').textContent='🤖 Revisar com IA';
-shouldRestart=true;
-btn.textContent='🔴 Parar';btn.classList.add('mic-on');
-beepStart();
-try{recog.start();}catch(e){}
-sttTimeout=setTimeout(function(){stopDic();},120000);
-}
-function stopDic(){
-shouldRestart=false;
-clearTimeout(sttTimeout);
-try{recog.stop();}catch(e){}
-var btn=document.getElementById('btnMic');
-btn.textContent='🎤 Ditar';btn.classList.remove('mic-on');
-beepStop();
-}
-function dicInsert(){
-var txt=document.getElementById('dicTxt').value.trim();
-if(!txt)return;
-var cur=document.getElementById('wizTxt').value.trim();
-document.getElementById('wizTxt').value=cur?(cur+'\n'+txt):txt;
-document.getElementById('dicArea').classList.add('hidden');
-document.getElementById('dicTxt').value='';
-stopDic();
-beepOk();
-document.getElementById('wizTxt').scrollIntoView({behavior:'smooth',block:'center'});
-}
-function dicDiscard(){
-document.getElementById('dicArea').classList.add('hidden');
-document.getElementById('dicTxt').value='';
-stopDic();
-}
-async function dicRevAI(){
-var txt=document.getElementById('dicTxt').value.trim();
-if(!txt){alert('Nada para revisar.');return;}
-var btn=document.getElementById('btnRevAudio');
-btn.disabled=true;btn.innerHTML='<span class="spinner"></span> Revisando...';
-var ctx=buildCtxResumo();
-var prompt='Você é assistente de um Escrivão da Polícia Federal de Bauru/SP.\n'+
-'Revise o texto abaixo, que foi ditado por voz por um policial durante depoimento.\n'+
-'Corrija gramática, pontuação e torne a linguagem mais formal e coesa.\n'+
-'NÃO altere fatos, nomes, números, placas ou informações substantivas.\n'+
-'Retorne APENAS o texto revisado, sem explicações.\n\n'+
-'CONTEXTO:\n'+ctx+'\n\nTEXTO DITADO:\n'+txt;
-var resp=await callGemini(prompt);
-btn.disabled=false;
-if(resp){
-document.getElementById('dicTxt').value=resp;
-btn.textContent='✅ Revisado';
-btn.classList.remove('btn-pri');btn.classList.add('btn-ok');
-}else{
-btn.textContent='🤖 Revisar com IA';
-alert('Erro ao revisar. Tente novamente.');
-}
-}
 
 // ============================================
 // GEMINI API
 // ============================================
-async function callGemini(prompt){
-try{
-var r=await fetch(API_URL+'?key='+API_KEY,{
+async function _fetchGemini(url,prompt){
+var r=await fetch(url+'?key='+API_KEY,{
 method:'POST',
 headers:{'Content-Type':'application/json'},
 body:JSON.stringify({contents:[{parts:[{text:prompt}]}],generationConfig:{temperature:0.3,maxOutputTokens:8192}})
@@ -493,7 +670,18 @@ var d=await r.json();
 if(d.candidates&&d.candidates[0]&&d.candidates[0].content)
 return d.candidates[0].content.parts[0].text.trim();
 console.error('Gemini resp:',d);return null;
-}catch(e){console.error('Gemini err:',e);return null;}
+}
+async function callGemini(prompt){
+try{
+var r=await _fetchGemini(API_URL,prompt);
+if(r)return r;
+console.warn('Pro falhou, tentando Flash...');
+return await _fetchGemini(FLASH_URL,prompt);
+}catch(e){
+console.warn('Pro erro, tentando Flash...',e);
+try{return await _fetchGemini(FLASH_URL,prompt);}
+catch(e2){console.error('Flash também falhou:',e2);return null;}
+}
 }
 
 // ============================================
@@ -503,7 +691,9 @@ function buildCtxResumo(){
 var c='Depoente: '+((ST.ident.nome||''))+', '+(ST.ident.posto||'')+', Lotação: '+(ST.ident.lotacao||'')+'\n';
 c+='Procedimento: '+(ST.ident.proc||'N/I')+'\n';
 PERGS.forEach(function(p,i){
-if(ST.resps[p.id]){c+= p.num+' ('+p.titulo+'): '+ST.resps[p.id]+'\n';}
+var paras=ST.paras[p.id]||[];
+var txt=paras.length?paras.map(function(x){return x.text;}).join(' '):(ST.resps[p.id]||'');
+if(txt){c+=p.num+' ('+p.titulo+'): '+txt+'\n';}
 });
 return c;
 }
@@ -516,7 +706,7 @@ var s=localStorage.getItem(LS_KEY);
 if(s){document.getElementById('btnContinuar').classList.remove('hidden');}
 }
 function novaDec(){
-ST={ident:{},resps:{},wizIdx:0,v1:'',v2:'',v1Blocks:[],activeTab:0};
+ST={ident:{},resps:{},paras:{},wizIdx:0,v1:'',v2:'',v1Blocks:[],activeTab:0};
 var now=new Date();
 document.getElementById('idData').value=now.toISOString().slice(0,10);
 document.getElementById('idHora').value=now.toTimeString().slice(0,5);
@@ -613,16 +803,19 @@ d.querySelector('input').onchange=function(){d.classList.toggle('checked',this.c
 g.appendChild(d);
 });
 }else{document.getElementById('wizCks').classList.add('hidden');}
-// Textarea
-document.getElementById('wizTxt').value=ST.resps[pg.id]||'';
-// Confirmed resp
+// Reset dictation state
+DM.reset('wiz');
+document.getElementById('wizLiveArea').classList.add('hidden');
+var _mb=document.getElementById('btnMic');if(_mb){_mb.textContent='\u{1f3a4} Ditar parágrafo';_mb.classList.remove('mic-on');}
+// Load saved paragraphs
+DM.loadParas('wiz',pg.id);
+DM.render('wiz');
+// Clear manual textarea
+document.getElementById('wizTxt').value='';
+// Confirmed resp summary
 var r=ST.resps[pg.id];
-if(r){document.getElementById('wizResp').textContent=r;document.getElementById('wizResp').classList.remove('hidden');}
+if(r){document.getElementById('wizResp').innerHTML='<strong>Resposta consolidada:</strong><br>'+escHtml(r)+'<br><span class=\"ts-badge\">\u23f1 '+(respTimestamps[pg.id]||'')+'</span>';document.getElementById('wizResp').classList.remove('hidden');}
 else{document.getElementById('wizResp').classList.add('hidden');}
-// Dictation reset
-document.getElementById('dicArea').classList.add('hidden');
-document.getElementById('dicTxt').value='';
-stopDic();
 // Nav buttons
 document.getElementById('btnVoltar').classList.toggle('hidden',idx===0);
 document.getElementById('btnNext').textContent=idx===PERGS.length-1?'Gerar Termo ▶':'Próximo →';
@@ -645,15 +838,10 @@ if(ST.wizIdx>0){saveCurrentResp();ST.wizIdx--;renderWiz();}
 function wizNext(){
 saveCurrentResp();
 var pg=PERGS[ST.wizIdx];
-// Auto-insert pending dictation
-var pending=document.getElementById('dicTxt').value.trim();
-if(pending){
-var cur=document.getElementById('wizTxt').value.trim();
-document.getElementById('wizTxt').value=cur?(cur+'\n'+pending):pending;
-saveCurrentResp();
-}
+// Paragraphs already persisted via DM.persist
 // P12 can be blank
-if(ST.wizIdx<PERGS.length-1&&!ST.resps[pg.id]&&pg.id!=='p12'){
+var _hasPara=(ST.paras[pg.id]&&ST.paras[pg.id].length>0);
+if(ST.wizIdx<PERGS.length-1&&!ST.resps[pg.id]&&!_hasPara&&pg.id!=='p12'){
 shake('wizTxt');return;
 }
 if(ST.wizIdx===PERGS.length-1){
@@ -665,24 +853,30 @@ renderWiz();
 autoSave();
 }
 }
-function saveCurrentResp(){
+function _syncResp(){
 var pg=PERGS[ST.wizIdx];
-var txt=document.getElementById('wizTxt').value.trim();
-// For P3, prepend checked options
+var paras=ST.paras[pg.id]||[];
+var paraTxt=paras.map(function(p){return p.text;}).join(' ');
 if(pg.ck){
 var cks=ST.resps[pg.id+'_ck']||[];
-if(cks.length||txt){
 var full='';
 if(cks.length)full='['+cks.join('; ')+']. ';
-if(txt)full+=txt;
-ST.resps[pg.id]=full.trim();
-}
+if(paraTxt)full+=paraTxt;
+if(full.trim())ST.resps[pg.id]=full.trim();
 }else{
-if(txt)ST.resps[pg.id]=txt;
+if(paraTxt)ST.resps[pg.id]=paraTxt;
+else ST.resps[pg.id]='';
 }
+if(ST.resps[pg.id])respTimestamps[pg.id]=respTimestamps[pg.id]||stampNow();
+}
+function saveCurrentResp(){
+// Auto-add pending typed text as paragraph
+var txt=document.getElementById('wizTxt').value.trim();
+if(txt){DM.addManual('wiz');txt='';}
+_syncResp();
+var pg=PERGS[ST.wizIdx];
 if(ST.resps[pg.id]){
-respTimestamps[pg.id]=respTimestamps[pg.id]||stampNow();
-document.getElementById('wizResp').innerHTML=escHtml(ST.resps[pg.id])+'<br><span class="ts-badge">⏱ Firmado às '+respTimestamps[pg.id]+'</span>';
+document.getElementById('wizResp').innerHTML='<strong>Resposta consolidada:</strong><br>'+escHtml(ST.resps[pg.id])+'<br><span class="ts-badge">\u23f1 '+(respTimestamps[pg.id]||'')+'</span>';
 document.getElementById('wizResp').classList.remove('hidden');
 }
 autoSave();
@@ -696,7 +890,8 @@ showLoading('Gerando Termo de Declaração...');
 // V1 - local
 var v1Blocks=[];
 PERGS.forEach(function(pg){
-v1Blocks.push({num:pg.num,titulo:pg.titulo,q:pg.q,resp:ST.resps[pg.id]||'(Não respondido)',ts:respTimestamps[pg.id]||''});
+var _pTxt=(ST.paras[pg.id]||[]).map(function(x){return x.text;}).join(' ');
+v1Blocks.push({num:pg.num,titulo:pg.titulo,q:pg.q,resp:_pTxt||ST.resps[pg.id]||'(Não respondido)',ts:respTimestamps[pg.id]||''});
 });
 ST.v1Blocks=v1Blocks;
 // V2 - AI
@@ -750,16 +945,19 @@ div.innerHTML='<h4>'+b.num+' — '+b.titulo+(b.ts?' <span class="ts-badge">⏱ '
 '<div class="rev-area">'+
 '<h4>Retificar / Complementar</h4>'+
 '<div class="btn-row">'+
-'<button class="btn btn-sm btn-pri" onclick="startDicV1('+i+')">🎤 Ditar</button>'+
+'<button class="btn btn-sm btn-pri" id="micBtn_v1_'+i+'" onclick="DM.toggle(\'v1_'+i+'\')">🎤 Ditar</button>'+
 '<button class="btn btn-sm btn-ghost" onclick="editManV1('+i+')">✏️ Editar</button>'+
 '</div>'+
-'<div id="v1dic'+i+'" class="dict-area hidden">'+
-'<textarea id="v1dt'+i+'" placeholder="Transcrição / instrução..."></textarea>'+
-'<div class="dict-btns">'+
-'<button class="btn btn-ok btn-sm" onclick="v1DicInsert('+i+')">✅ Inserir</button>'+
-'<button class="btn btn-pri btn-sm" id="v1rev'+i+'" onclick="v1DicRevAI('+i+')">🤖 Revisar com IA</button>'+
-'<button class="btn btn-err btn-sm" onclick="v1DicDiscard('+i+')">✖ Descartar</button>'+
-'</div></div>'+
+'<div id="dicLive_v1_'+i+'" class="dict-area hidden">'+
+'<textarea id="dicLiveTxt_v1_'+i+'" placeholder="Fale..." readonly></textarea>'+
+'<button class="btn btn-sm btn-err" onclick="DM.stop(\'v1_'+i+'\')">🔴 Parar</button>'+
+'</div>'+
+'<div id="dicPhrases_v1_'+i+'" class="phrases-container"></div>'+
+'<div id="dicActs_v1_'+i+'" class="phrases-actions hidden">'+
+'<button class="btn btn-sm btn-ok" onclick="v1PhraseInsert('+i+')">✅ Inserir</button>'+
+'<button class="btn btn-sm btn-pri" onclick="v1PhraseRevAI('+i+')">🤖 Revisar com IA</button>'+
+'<button class="btn btn-sm btn-err" onclick="DM.discardAll(\'v1_'+i+'\')">✖ Descartar</button>'+
+'</div>'+
 '<div id="v1edit'+i+'" class="hidden" style="margin-top:8px">'+
 '<textarea id="v1et'+i+'" rows="4">'+escHtml(b.resp)+'</textarea>'+
 '<div class="btn-row"><button class="btn btn-ok btn-sm" onclick="v1EditSave('+i+')">✅ Salvar</button>'+
@@ -775,16 +973,19 @@ el2.innerHTML='<div class="result-block">'+
 '<div class="rev-area">'+
 '<h4>Retificar / Complementar</h4>'+
 '<div class="btn-row">'+
-'<button class="btn btn-sm btn-pri" onclick="startDicV2()">🎤 Ditar</button>'+
+'<button class="btn btn-sm btn-pri" id="micBtn_v2" onclick="DM.toggle(\'v2\')">🎤 Ditar</button>'+
 '<button class="btn btn-sm btn-ghost" onclick="editManV2()">✏️ Editar</button>'+
 '</div>'+
-'<div id="v2dic" class="dict-area hidden">'+
-'<textarea id="v2dt" placeholder="Descreva a alteração desejada..."></textarea>'+
-'<div class="dict-btns">'+
-'<button class="btn btn-ok btn-sm" onclick="v2DicInsert()">✅ Inserir instrução</button>'+
-'<button class="btn btn-pri btn-sm" id="v2revBtn" onclick="v2DicRevAI()">🤖 Atualizar Termo com IA</button>'+
-'<button class="btn btn-err btn-sm" onclick="v2DicDiscard()">✖ Descartar</button>'+
-'</div></div>'+
+'<div id="dicLive_v2" class="dict-area hidden">'+
+'<textarea id="dicLiveTxt_v2" placeholder="Descreva a alteração..." readonly></textarea>'+
+'<button class="btn btn-sm btn-err" onclick="DM.stop(\'v2\')">🔴 Parar</button>'+
+'</div>'+
+'<div id="dicPhrases_v2" class="phrases-container"></div>'+
+'<div id="dicActs_v2" class="phrases-actions hidden">'+
+'<button class="btn btn-sm btn-ok" onclick="v2PhraseInsert()">✅ Inserir instrução</button>'+
+'<button class="btn btn-sm btn-pri" onclick="v2PhraseRevAI()">🤖 Atualizar Termo com IA</button>'+
+'<button class="btn btn-sm btn-err" onclick="DM.discardAll(\'v2\')">✖ Descartar</button>'+
+'</div>'+
 '<div id="v2edit" class="hidden" style="margin-top:8px">'+
 '<textarea id="v2et" rows="8">'+escHtml(ST.v2)+'</textarea>'+
 '<div class="btn-row"><button class="btn btn-ok btn-sm" onclick="v2EditSave()">✅ Salvar</button>'+
@@ -806,66 +1007,38 @@ document.getElementById('panelV2').classList.toggle('hidden',n!==1);
 }
 
 // ============================================
-// V1 REVISION (per block)
+// V1 REVISION (per block) — phrase-based
 // ============================================
-var v1Recog=null,v1ShouldRestart=false,v1ActiveIdx=-1;
-function startDicV1(i){
-var area=document.getElementById('v1dic'+i);
-if(!area.classList.contains('hidden')){v1StopDic(i);return;}
-// close others
-document.querySelectorAll('[id^=v1dic]').forEach(function(el){el.classList.add('hidden');});
-area.classList.remove('hidden');
-document.getElementById('v1dt'+i).value='';
-// reset button
-var rb=document.getElementById('v1rev'+i);
-rb.textContent='🤖 Revisar com IA';rb.classList.remove('btn-ok');rb.classList.add('btn-pri');rb.disabled=false;
-// Start STT
-v1ActiveIdx=i;
-if(!v1Recog){
-var SR=window.SpeechRecognition||window.webkitSpeechRecognition;
-if(!SR){alert('Navegador não suporta reconhecimento de voz.');return;}
-v1Recog=new SR();v1Recog.lang='pt-BR';v1Recog.continuous=false;v1Recog.interimResults=true;
-v1Recog.onresult=function(e){
-var t='';for(var j=0;j<e.results.length;j++)t+=e.results[j][0].transcript;
-if(v1ActiveIdx>=0)document.getElementById('v1dt'+v1ActiveIdx).value=t;
-};
-v1Recog.onend=function(){if(v1ShouldRestart)try{v1Recog.start();}catch(e){}};
-v1Recog.onerror=function(e){if(e.error!=='no-speech')v1StopDic(v1ActiveIdx);};
+function v1PhraseInsert(i){
+var ctx='v1_'+i;
+var phs=DM.phrases[ctx]||[];
+if(!phs.length)return;
+var allTxt=phs.map(function(p){return p.text;}).join(' ');
+ST.v1Blocks[i].resp=allTxt;
+ST.resps[PERGS[i].id]=allTxt;
+document.getElementById('v1t'+i).textContent=allTxt;
+DM.phrases[ctx]=[];DM.render(ctx);autoSave();beepOk();
 }
-v1ShouldRestart=true;
-try{v1Recog.start();}catch(e){}
-beepStart();
-}
-function v1StopDic(i){v1ShouldRestart=false;try{v1Recog.stop();}catch(e){};beepStop();}
-function v1DicInsert(i){
-var txt=document.getElementById('v1dt'+i).value.trim();
-if(!txt)return;
-ST.v1Blocks[i].resp=txt;
-ST.resps[PERGS[i].id]=txt;
-document.getElementById('v1t'+i).textContent=txt;
-document.getElementById('v1dic'+i).classList.add('hidden');
-v1StopDic(i);autoSave();
-beepOk();
-}
-function v1DicDiscard(i){document.getElementById('v1dic'+i).classList.add('hidden');v1StopDic(i);}
-async function v1DicRevAI(i){
-var txt=document.getElementById('v1dt'+i).value.trim();
-if(!txt){alert('Nada para revisar.');return;}
-var btn=document.getElementById('v1rev'+i);
-btn.disabled=true;btn.innerHTML='<span class="spinner"></span>';
+async function v1PhraseRevAI(i){
+var ctx='v1_'+i;
+var phs=DM.phrases[ctx]||[];
+if(!phs.length){alert('Nenhum parágrafo.');return;}
+var allTxt=phs.map(function(p){return p.text;}).join(' ');
 var current=ST.v1Blocks[i].resp;
+showLoading('Atualizando bloco com IA...');
 var prompt='Aplique EXATAMENTE o que o usuário pede na instrução abaixo ao texto do bloco.\n'+
 'Mantenha todo o restante inalterado — só modifique o necessário.\n'+
 'NÃO invente informações além do que o usuário instruiu.\n'+
 'Mantenha tom formal.\nRetorne APENAS o texto revisado.\n\n'+
 'TEXTO ATUAL DO BLOCO ('+PERGS[i].num+' — '+PERGS[i].titulo+'):\n'+current+'\n\n'+
-'INSTRUÇÃO DO USUÁRIO:\n'+txt;
+'INSTRUÇÃO DO USUÁRIO:\n'+allTxt;
 var resp=await callGemini(prompt);
-btn.disabled=false;
+hideLoading();
 if(resp){
-document.getElementById('v1dt'+i).value=resp;
-btn.textContent='✅ Revisado';btn.classList.remove('btn-pri');btn.classList.add('btn-ok');
-}else{btn.textContent='🤖 Revisar com IA';alert('Erro. Tente novamente.');}
+ ST.v1Blocks[i].resp=resp;ST.resps[PERGS[i].id]=resp;
+ document.getElementById('v1t'+i).textContent=resp;
+ DM.phrases[ctx]=[];DM.render(ctx);autoSave();beepOk();
+}else{alert('Erro. Tente novamente.');}
 }
 function editManV1(i){
 document.getElementById('v1edit'+i).classList.toggle('hidden');
@@ -882,59 +1055,34 @@ autoSave();
 function v1EditCancel(i){document.getElementById('v1edit'+i).classList.add('hidden');}
 
 // ============================================
-// V2 REVISION
+// V2 REVISION — phrase-based
 // ============================================
-var v2Recog=null,v2ShouldRestart=false;
-function startDicV2(){
-var area=document.getElementById('v2dic');
-if(!area.classList.contains('hidden')){v2StopDic();return;}
-area.classList.remove('hidden');
-document.getElementById('v2dt').value='';
-var rb=document.getElementById('v2revBtn');
-rb.textContent='🤖 Atualizar Termo com IA';rb.classList.remove('btn-ok');rb.classList.add('btn-pri');rb.disabled=false;
-if(!v2Recog){
-var SR=window.SpeechRecognition||window.webkitSpeechRecognition;
-if(!SR){alert('Navegador não suporta reconhecimento de voz.');return;}
-v2Recog=new SR();v2Recog.lang='pt-BR';v2Recog.continuous=false;v2Recog.interimResults=true;
-v2Recog.onresult=function(e){
-var t='';for(var j=0;j<e.results.length;j++)t+=e.results[j][0].transcript;
-document.getElementById('v2dt').value=t;
-};
-v2Recog.onend=function(){if(v2ShouldRestart)try{v2Recog.start();}catch(e){}};
-v2Recog.onerror=function(e){if(e.error!=='no-speech')v2StopDic();};
+function v2PhraseInsert(){
+var phs=DM.phrases['v2']||[];
+if(!phs.length)return;
+var allTxt=phs.map(function(p){return p.text;}).join(' ');
+ST.v2=allTxt;
+document.getElementById('v2text').textContent=allTxt;
+DM.phrases['v2']=[];DM.render('v2');autoSave();beepOk();
 }
-v2ShouldRestart=true;
-try{v2Recog.start();}catch(e){}
-beepStart();
-}
-function v2StopDic(){v2ShouldRestart=false;try{v2Recog.stop();}catch(e){};beepStop();}
-function v2DicInsert(){
-var txt=document.getElementById('v2dt').value.trim();
-if(!txt)return;
-ST.v2=txt;
-document.getElementById('v2text').textContent=txt;
-document.getElementById('v2dic').classList.add('hidden');
-v2StopDic();autoSave();
-beepOk();
-}
-function v2DicDiscard(){document.getElementById('v2dic').classList.add('hidden');v2StopDic();}
-async function v2DicRevAI(){
-var txt=document.getElementById('v2dt').value.trim();
-if(!txt){alert('Descreva a alteração desejada.');return;}
-var btn=document.getElementById('v2revBtn');
-btn.disabled=true;btn.innerHTML='<span class="spinner"></span> Atualizando...';
+async function v2PhraseRevAI(){
+var phs=DM.phrases['v2']||[];
+if(!phs.length){alert('Nenhum parágrafo.');return;}
+var allTxt=phs.map(function(p){return p.text;}).join(' ');
+showLoading('Atualizando Termo com IA...');
 var prompt='Aplique EXATAMENTE o que o usuário pede na instrução abaixo ao Termo de Declaração.\n'+
 'Mantenha todo o restante do texto inalterado — só modifique o necessário.\n'+
 'NÃO invente informações além do que o usuário instruiu.\n'+
 'Mantenha o formato "QUE...;QUE..." e tom formal jurídico.\n'+
 'Retorne APENAS o texto revisado.\n\n'+
-'TERMO ATUAL:\n'+ST.v2+'\n\nINSTRUÇÃO DO USUÁRIO:\n'+txt;
+'TERMO ATUAL:\n'+ST.v2+'\n\nINSTRUÇÃO DO USUÁRIO:\n'+allTxt;
 var resp=await callGemini(prompt);
-btn.disabled=false;
+hideLoading();
 if(resp){
-document.getElementById('v2dt').value=resp;
-btn.textContent='✅ Atualizado';btn.classList.remove('btn-pri');btn.classList.add('btn-ok');
-}else{btn.textContent='🤖 Atualizar Termo com IA';alert('Erro. Tente novamente.');}
+ ST.v2=resp;
+ document.getElementById('v2text').textContent=resp;
+ DM.phrases['v2']=[];DM.render('v2');autoSave();beepOk();
+}else{alert('Erro. Tente novamente.');}
 }
 function editManV2(){
 document.getElementById('v2edit').classList.toggle('hidden');
