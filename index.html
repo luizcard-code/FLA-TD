@@ -660,27 +660,44 @@ reset:function(ctx){if(this.active===ctx)this.stop(ctx);}
 // ============================================
 // GEMINI API
 // ============================================
-async function _fetchGemini(url,prompt){
+async function _fetchGemini(url,prompt,attempt){
+attempt=attempt||1;
+var model=url.indexOf('flash')>-1?'Flash':'Pro';
+console.log('[IA] '+model+' tentativa '+attempt+'...');
 var r=await fetch(url+'?key='+API_KEY,{
 method:'POST',
 headers:{'Content-Type':'application/json'},
 body:JSON.stringify({contents:[{parts:[{text:prompt}]}],generationConfig:{temperature:0.3,maxOutputTokens:8192}})
 });
+if(r.status===503||r.status===429){
+ if(attempt<3){
+  var wait=attempt*3;
+  console.warn('[IA] '+model+' '+r.status+' — aguardando '+wait+'s (tentativa '+attempt+'/3)');
+  await new Promise(function(ok){setTimeout(ok,wait*1000);});
+  return _fetchGemini(url,prompt,attempt+1);
+ }
+ console.error('[IA] '+model+' falhou após 3 tentativas');
+ return null;
+}
 var d=await r.json();
-if(d.candidates&&d.candidates[0]&&d.candidates[0].content)
-return d.candidates[0].content.parts[0].text.trim();
-console.error('Gemini resp:',d);return null;
+if(d.candidates&&d.candidates[0]&&d.candidates[0].content){
+ console.log('[IA] '+model+' OK');
+ return d.candidates[0].content.parts[0].text.trim();
+}
+console.error('[IA] '+model+' resp inesperada:',d);return null;
 }
 async function callGemini(prompt){
 try{
 var r=await _fetchGemini(API_URL,prompt);
 if(r)return r;
-console.warn('Pro falhou, tentando Flash...');
-return await _fetchGemini(FLASH_URL,prompt);
+console.warn('[IA] Pro sem resultado, tentando Flash...');
+var f=await _fetchGemini(FLASH_URL,prompt);
+if(f)return f;
+console.error('[IA] Ambos falharam');return null;
 }catch(e){
-console.warn('Pro erro, tentando Flash...',e);
+console.warn('[IA] Pro erro:',e,'— tentando Flash...');
 try{return await _fetchGemini(FLASH_URL,prompt);}
-catch(e2){console.error('Flash também falhou:',e2);return null;}
+catch(e2){console.error('[IA] Flash também falhou:',e2);return null;}
 }
 }
 
