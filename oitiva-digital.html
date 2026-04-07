@@ -1,0 +1,1042 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width,initial-scale=1,maximum-scale=1,user-scalable=no">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+<title>Oitiva Digital — DPF/BRU/SP</title>
+<style>
+*{box-sizing:border-box;margin:0;padding:0;-webkit-tap-highlight-color:transparent}
+html,body{overscroll-behavior-y:contain;scroll-behavior:smooth;overflow-x:hidden;font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,sans-serif;background:#f0f2f5;color:#1a1a1a;min-height:100vh;min-height:100dvh}
+body{padding-bottom:env(safe-area-inset-bottom,0)}
+input,textarea,select,button{font-family:inherit;font-size:16px;-webkit-appearance:none;appearance:none}
+textarea{resize:vertical}
+:root{--pri:#2563eb;--pri-dk:#1d4ed8;--ok:#16a34a;--ok-dk:#15803d;--err:#dc2626;--warn:#f59e0b;--bg:#f0f2f5;--card:#fff;--border:#e5e7eb;--txt:#1a1a1a;--txt2:#6b7280;--txt3:#9ca3af;--rad:12px}
+.topbar{position:sticky;top:0;z-index:100;background:var(--pri);color:#fff;padding:16px 20px;text-align:center;padding-top:max(16px,env(safe-area-inset-top))}
+.topbar h1{font-size:18px;font-weight:700;letter-spacing:.3px}
+.topbar p{font-size:12px;opacity:.8;margin-top:2px;cursor:default;-webkit-user-select:none;user-select:none}
+.wrap{max-width:480px;margin:0 auto;padding:16px}
+.card{background:var(--card);border:1px solid var(--border);border-radius:var(--rad);padding:24px 20px;margin-bottom:16px}
+.card h2{font-size:15px;font-weight:700;margin-bottom:16px;color:var(--pri)}
+.card h3{font-size:14px;font-weight:600;margin-bottom:8px;color:var(--txt)}
+label{display:block;font-size:13px;font-weight:600;color:var(--txt2);margin-bottom:4px;margin-top:12px}
+label:first-child{margin-top:0}
+input[type=text],input[type=number],input[type=date],input[type=time],textarea,select{width:100%;padding:12px;border:1px solid var(--border);border-radius:8px;background:#fff;color:var(--txt);font-size:15px;transition:border .2s}
+input:focus,textarea:focus,select:focus{outline:none;border-color:var(--pri);box-shadow:0 0 0 3px rgba(37,99,235,.1)}
+.hint{font-size:12px;color:var(--txt3);margin-top:4px;line-height:1.4;font-style:italic}
+.btn{display:inline-flex;align-items:center;justify-content:center;gap:6px;padding:14px 20px;border:none;border-radius:8px;font-size:15px;font-weight:600;cursor:pointer;transition:transform .1s,background .2s;width:100%}
+.btn:active{transform:scale(.97)}
+.btn-pri{background:var(--pri);color:#fff}.btn-pri:hover{background:var(--pri-dk)}
+.btn-ok{background:var(--ok);color:#fff}.btn-ok:hover{background:var(--ok-dk)}
+.btn-err{background:var(--err);color:#fff}
+.btn-warn{background:var(--warn);color:#fff}
+.btn-ghost{background:transparent;color:var(--pri);border:1px solid var(--border)}
+.btn-sm{padding:10px 14px;font-size:13px;width:auto}
+.btn-row{display:flex;gap:8px;margin-top:12px}
+.btn-row .btn{flex:1}
+.btn:disabled{opacity:.5;cursor:not-allowed;transform:none}
+.hidden{display:none!important}
+/* Progress bar */
+.progress{display:flex;align-items:center;justify-content:center;gap:6px;padding:12px 20px;background:#fff;border-bottom:1px solid var(--border)}
+.dot{width:10px;height:10px;border-radius:50%;background:var(--border);transition:background .3s,transform .3s}
+.dot.done{background:var(--ok)}.dot.active{background:var(--pri);transform:scale(1.3)}
+/* Shake */
+@keyframes shake{0%,100%{transform:translateX(0)}25%{transform:translateX(-6px)}75%{transform:translateX(6px)}}
+.shake{animation:shake .3s}
+/* Pulse mic */
+@keyframes pulse{0%,100%{box-shadow:0 0 0 0 rgba(220,38,38,.4)}50%{box-shadow:0 0 0 12px rgba(220,38,38,0)}}
+.mic-on{background:var(--err)!important;animation:pulse 1.5s infinite;box-shadow:0 0 16px rgba(220,38,38,.5)}
+.ts-badge{display:inline-block;font-size:11px;color:var(--txt3);margin-top:4px}
+/* Spinner */
+.spinner{display:inline-block;width:20px;height:20px;border:3px solid rgba(255,255,255,.3);border-top-color:#fff;border-radius:50%;animation:spin .6s linear infinite}
+@keyframes spin{to{transform:rotate(360deg)}}
+.spinner-dark{border-color:rgba(37,99,235,.2);border-top-color:var(--pri)}
+/* Dictation area */
+.dict-area{background:#f9fafb;border:1px solid var(--border);border-radius:8px;padding:12px;margin-top:8px}
+.dict-area textarea{min-height:80px;font-size:14px}
+.dict-btns{display:flex;gap:6px;margin-top:8px;flex-wrap:wrap}
+.dict-btns .btn{flex:none;padding:8px 12px;font-size:13px;width:auto}
+/* Response display */
+.resp-display{background:#f0fdf4;border:1px solid #bbf7d0;border-radius:8px;padding:14px;margin-top:10px;font-size:14px;line-height:1.6;white-space:pre-wrap;word-wrap:break-word}
+/* Result blocks */
+.result-block{background:#fff;border:1px solid var(--border);border-radius:var(--rad);padding:16px;margin-bottom:12px}
+.result-block h4{font-size:13px;color:var(--pri);font-weight:700;margin-bottom:8px}
+.result-text{font-size:14px;line-height:1.7;white-space:pre-wrap;word-wrap:break-word;color:var(--txt)}
+/* Tabs */
+.tabs{display:flex;border-bottom:2px solid var(--border);margin-bottom:16px}
+.tab{flex:1;padding:12px;text-align:center;font-size:14px;font-weight:600;color:var(--txt3);cursor:pointer;border-bottom:2px solid transparent;margin-bottom:-2px;transition:color .2s,border .2s}
+.tab.active{color:var(--pri);border-bottom-color:var(--pri)}
+/* TTS toggle */
+.tts-toggle{position:absolute;right:16px;top:50%;transform:translateY(-50%);background:rgba(255,255,255,.2);border:none;color:#fff;font-size:18px;padding:4px 8px;border-radius:6px;cursor:pointer}
+.topbar{position:sticky;top:0;z-index:100;background:var(--pri);color:#fff;padding:16px 20px;text-align:center;padding-top:max(16px,env(safe-area-inset-top));position:relative}
+/* Checkbox group */
+.ck-group{display:flex;flex-direction:column;gap:8px;margin-top:8px}
+.ck-item{display:flex;align-items:center;gap:10px;padding:10px 12px;background:#f9fafb;border:1px solid var(--border);border-radius:8px;cursor:pointer;transition:background .2s}
+.ck-item.checked{background:#eff6ff;border-color:var(--pri)}
+.ck-item input{width:18px;height:18px;accent-color:var(--pri)}
+.ck-item span{font-size:14px}
+/* Modal overlay */
+.modal-overlay{position:fixed;inset:0;background:rgba(0,0,0,.5);z-index:200;display:flex;align-items:center;justify-content:center;padding:20px}
+.modal{background:#fff;border-radius:var(--rad);padding:24px 20px;max-width:400px;width:100%;max-height:90vh;overflow-y:auto}
+.modal h2{font-size:16px;margin-bottom:16px;color:var(--pri)}
+/* Revision area (used everywhere) */
+.rev-area{border-top:1px solid var(--border);margin-top:16px;padding-top:16px}
+.rev-area h4{font-size:13px;font-weight:600;color:var(--txt2);margin-bottom:8px}
+/* Question text */
+.q-text{font-size:16px;font-weight:600;line-height:1.5;color:var(--txt);margin-bottom:4px}
+.q-number{font-size:12px;color:var(--pri);font-weight:700;margin-bottom:6px}
+/* STF badge */
+.stf-badge{display:inline-block;background:#fef3c7;color:#92400e;font-size:11px;font-weight:600;padding:4px 8px;border-radius:4px;margin-top:8px;line-height:1.4}
+</style>
+</head>
+<body>
+
+<!-- T0: LOGIN -->
+<div id="tLogin">
+<div class="topbar"><h1>Oitiva Digital</h1><p>DPF/BRU/SP</p></div>
+<div class="wrap">
+<div class="card" style="margin-top:40px;text-align:center">
+<h2>🔐 Acesso Restrito</h2>
+<p style="font-size:13px;color:var(--txt2);margin-bottom:16px">Digite a senha para acessar o sistema</p>
+<input type="password" id="inpSenha" placeholder="Senha" autocomplete="off" style="text-align:center;font-size:18px;letter-spacing:4px">
+<div id="loginErr" class="hidden" style="color:var(--err);font-size:13px;margin-top:8px"></div>
+<button class="btn btn-pri" style="margin-top:16px" onclick="doLogin()">Entrar</button>
+</div>
+</div>
+</div>
+
+<!-- T1: HOME -->
+<div id="tHome" class="hidden">
+<div class="topbar">
+<h1>Oitiva Digital</h1>
+<p id="topSub" onclick="adminTap()">DPF/BRU/SP</p>
+<button class="tts-toggle" onclick="toggleTTS()" title="Leitura em voz alta">🔊</button>
+</div>
+<div class="wrap">
+<div class="card" style="text-align:center">
+<h2>📋 Termo de Declaração</h2>
+<p style="font-size:13px;color:var(--txt2);margin-bottom:20px">Coleta de depoimento de policial/testemunha com auxílio de IA</p>
+<button class="btn btn-pri" onclick="novaDec()">Nova Declaração</button>
+<div id="btnContinuar" class="hidden" style="margin-top:10px">
+<button class="btn btn-ghost" onclick="continuarDec()">📂 Continuar declaração salva</button>
+</div>
+</div>
+</div>
+</div>
+
+<!-- T2: IDENTIFICAÇÃO (P1) -->
+<div id="tIdent" class="hidden">
+<div class="topbar">
+<h1>Oitiva Digital</h1><p>Identificação do Depoente</p>
+<button class="tts-toggle" onclick="toggleTTS()">🔊</button>
+</div>
+<div class="progress" id="progBar"></div>
+<div class="wrap">
+<div class="card">
+<h2>P1 — Identificação do Depoente</h2>
+<label>Nome Completo</label>
+<input type="text" id="idNome" placeholder="Ex: JOÃO DA SILVA SANTOS" autocapitalize="characters">
+<label>Posto / Patente</label>
+<input type="text" id="idPosto" placeholder="Ex: SD PM, CB PM, SGT PM, INSP PRF, AGT PF...">
+<label>CPF</label>
+<input type="text" id="idCPF" placeholder="000.000.000-00" inputmode="numeric" maxlength="14">
+<label>RE / Matrícula</label>
+<input type="text" id="idRE" placeholder="Ex: 123456-7">
+<label>Lotação</label>
+<input type="text" id="idLot" placeholder="Ex: 38º BPMI - São Carlos/SP">
+<label>Nº Procedimento (opcional)</label>
+<input type="text" id="idProc" placeholder="Ex: IPL 0001/2026, APF 0037995/2026...">
+<label>Data/Hora</label>
+<div style="display:flex;gap:8px">
+<input type="date" id="idData" style="flex:1">
+<input type="time" id="idHora" style="flex:1">
+</div>
+<button class="btn btn-pri" style="margin-top:20px" onclick="guardBtn('iw',iniciarWizard)">Iniciar Oitiva ▶</button>
+</div>
+</div>
+</div>
+
+<!-- T3: WIZARD P2-P12 -->
+<div id="tWizard" class="hidden">
+<div class="topbar">
+<h1>Oitiva Digital</h1><p id="wizSub">Pergunta</p>
+<button class="tts-toggle" onclick="toggleTTS()">🔊</button>
+</div>
+<div class="progress" id="progBar2"></div>
+<div class="wrap">
+<div class="card" id="wizCard">
+<div class="q-number" id="wizNum"></div>
+<div class="q-text" id="wizQ"></div>
+<div class="hint" id="wizHint"></div>
+<div id="wizStf" class="hidden"><div class="stf-badge">⚖️ RE 603.616/RO (Tema 315 STF): busca pessoal exige fundada suspeita objetiva, não pode ser aleatória.</div></div>
+<!-- P3 checkboxes -->
+<div id="wizCks" class="hidden">
+<div class="ck-group" id="ckGroup"></div>
+</div>
+<!-- Dictation -->
+<div style="margin-top:16px">
+<div class="btn-row">
+<button class="btn btn-sm btn-pri" id="btnMic" onclick="startDic()">🎤 Ditar</button>
+<button class="btn btn-sm btn-ghost" id="btnRepeat" onclick="readQ()">🔊 Repetir</button>
+</div>
+<div id="dicArea" class="dict-area hidden">
+<textarea id="dicTxt" placeholder="Transcrição aparecerá aqui..."></textarea>
+<div class="dict-btns">
+<button class="btn btn-ok btn-sm" onclick="dicInsert()">✅ Inserir</button>
+<button class="btn btn-pri btn-sm" id="btnRevAudio" onclick="dicRevAI()">🤖 Revisar com IA</button>
+<button class="btn btn-err btn-sm" onclick="dicDiscard()">✖ Descartar</button>
+</div>
+</div>
+<!-- Manual input -->
+<label style="margin-top:12px">Ou digite:</label>
+<textarea id="wizTxt" rows="3" placeholder="Digite a resposta..."></textarea>
+</div>
+<!-- Confirmed response -->
+<div id="wizResp" class="resp-display hidden"></div>
+<!-- Nav -->
+<div class="btn-row" style="margin-top:16px">
+<button class="btn btn-ghost" id="btnVoltar" onclick="wizBack()">← Voltar</button>
+<button class="btn btn-pri" id="btnNext" onclick="guardBtn('wn',wizNext)">Próximo →</button>
+</div>
+</div>
+</div>
+</div>
+
+<!-- T4: RESULTADO -->
+<div id="tResult" class="hidden">
+<div class="topbar">
+<h1>Oitiva Digital</h1><p>Resultado</p>
+<button class="tts-toggle" onclick="toggleTTS()">🔊</button>
+</div>
+<div class="wrap">
+<div class="tabs">
+<div class="tab active" onclick="switchTab(0)" id="tab0">📋 Por Pergunta</div>
+<div class="tab" onclick="switchTab(1)" id="tab1">📄 Termo Completo</div>
+</div>
+<!-- V1 -->
+<div id="panelV1"></div>
+<!-- V2 -->
+<div id="panelV2" class="hidden"></div>
+<!-- Final actions -->
+<div class="card" style="margin-top:8px">
+<div class="btn-row"><button class="btn btn-ok" onclick="copiarAtivo()">📋 Copiar</button></div>
+<div class="btn-row"><button class="btn btn-pri" onclick="enviarWA()">📱 WhatsApp</button></div>
+<div class="btn-row"><button class="btn btn-ghost" onclick="novaDecConfirm()">🔄 Nova Declaração</button></div>
+</div>
+</div>
+</div>
+
+<!-- T5: ADMIN -->
+<div id="tAdmin" class="hidden">
+<div class="topbar"><h1>Oitiva Digital</h1><p>Administração</p></div>
+<div class="wrap">
+<div class="card">
+<h2>⚙️ Configurações</h2>
+<label>Nova chave criptografada (EK)</label>
+<textarea id="admEK" rows="3" style="font-size:12px;font-family:monospace"></textarea>
+<button class="btn btn-pri" style="margin-top:12px" onclick="salvarEK()">Salvar EK</button>
+<button class="btn btn-ghost" style="margin-top:8px" onclick="showScreen('tHome')">← Voltar</button>
+</div>
+</div>
+</div>
+
+<!-- LOADING OVERLAY -->
+<div id="loadOv" class="modal-overlay hidden">
+<div style="text-align:center;color:#fff">
+<div class="spinner" style="width:40px;height:40px;border-width:4px;margin:0 auto 16px"></div>
+<p id="loadMsg" style="font-size:15px;font-weight:600">Processando...</p>
+</div>
+</div>
+
+<script>
+// ============================================
+// CONFIG
+// ============================================
+var EK='e2102277cb453ba42ef4fd93854f35d2:9f8a727e326f21bf088858b8:7e6803a9dd12f71cba93c9fa8c5679eba561fbdb6565d2527a9e72d3b10cdee0bf1061b3f1befc883d1990d332bbc41497babfc01686ea';
+var MODEL='gemini-2.5-pro';
+var API_URL='https://generativelanguage.googleapis.com/v1beta/models/'+MODEL+':generateContent';
+var WA_NUM='551433123124';
+var API_KEY='';
+var ttsOn=true;
+var adminTaps=0;
+var adminTimer=null;
+var LS_KEY='oitivaDigital_v1';
+
+// ============================================
+// BEEP (Web Audio API) + VIBRAÇÃO
+// ============================================
+var audioCtx=null;
+function beep(freq,dur,vol){
+try{
+if(!audioCtx)audioCtx=new(window.AudioContext||window.webkitAudioContext)();
+var o=audioCtx.createOscillator(),g=audioCtx.createGain();
+o.connect(g);g.connect(audioCtx.destination);
+o.type='sine';o.frequency.value=freq||880;
+g.gain.value=vol||0.3;
+o.start();o.stop(audioCtx.currentTime+(dur||0.15));
+}catch(e){}
+}
+function beepStart(){beep(880,0.12,0.3);vib(50);}
+function beepStop(){beep(440,0.2,0.25);vib([30,50,30]);}
+function beepOk(){beep(1200,0.1,0.2);}
+function vib(p){try{navigator.vibrate(p);}catch(e){}}
+
+// ============================================
+// DOUBLE-TAP GUARD
+// ============================================
+var _btnLock={};
+function guardBtn(key,fn){
+if(_btnLock[key])return;
+_btnLock[key]=true;
+setTimeout(function(){_btnLock[key]=false;},600);
+fn();
+}
+
+// ============================================
+// TIMESTAMP
+// ============================================
+var respTimestamps={};
+function stampNow(){var d=new Date();return d.toLocaleTimeString('pt-BR',{hour:'2-digit',minute:'2-digit',second:'2-digit'});}
+
+// ============================================
+// PERGUNTAS P2-P12
+// ============================================
+var PERGS=[
+{id:'p2',num:'P2',titulo:'Circunstâncias Iniciais',q:'O que estava fazendo quando tomou conhecimento da ocorrência?',hint:'Ex: estava em patrulhamento de rotina pela SP-255; escalado para operação na região; em ponto-base quando recebeu chamado via COPOM...',stf:false,ck:false},
+{id:'p3',num:'P3',titulo:'Motivação da Abordagem',q:'Qual o motivo que fundamentou a abordagem?',hint:'Selecione uma ou mais opções e complemente com detalhes no campo de texto ou por áudio.',stf:true,ck:true,opts:['Informação via rádio/COPOM','Denúncia anônima ou de terceiro','Atitude suspeita do(s) abordado(s)','Fuga ou desobediência a ordem de parada','Operação policial previamente planejada','Flagrante visualizado diretamente','Solicitação de outra unidade policial','Outro']},
+{id:'p4',num:'P4',titulo:'Dinâmica da Abordagem',q:'Como ocorreu a abordagem? Local exato, horário, como o veículo/pessoa foi parado.',hint:'Ex: abordamos no km 152 da Rod SP-215, São Carlos/SP, por volta das 20h; após acompanhamento de 2 km o motorista encostou no acostamento...',stf:false,ck:false},
+{id:'p5',num:'P5',titulo:'Identificação dos Envolvidos',q:'Identifique os abordados: nome, CPF, posição no veículo e dados do veículo.',hint:'Ex: motorista WALIFER MARQUES, CPF 000.000.000-00; passageiro PAULO RAFAEL, banco traseiro; veículo JAC/T6, placas FOV-4801, cor prata...',stf:false,ck:false},
+{id:'p6',num:'P6',titulo:'Relato dos Fatos',q:'Relate a sequência dos fatos após a abordagem.',hint:'Ex: ao vistoriar o porta-malas foram localizadas 72 caixas de cigarro; em revista pessoal foi encontrado envelope com cédulas...',stf:false,ck:false},
+{id:'p7',num:'P7',titulo:'Material Apreendido',q:'Descreva detalhadamente o material apreendido: tipo, quantidade, onde estava acondicionado.',hint:'Ex: 45 notas de R$100 com numeração idêntica; 36 mil maços de cigarro marca EIGHT em 72 caixas; 2 celulares de uso pessoal...',stf:false,ck:false},
+{id:'p8',num:'P8',titulo:'Entrevista Informal',q:'Os abordados disseram algo espontaneamente ou quando entrevistados? Relate.',hint:'Ex: disse que fazia frete por R$1.500; alegou não saber do conteúdo; confirmou que foram a Jaú comprar celular...',stf:false,ck:false},
+{id:'p9',num:'P9',titulo:'Colaboração e Resistência',q:'Os abordados colaboraram com a abordagem ou houve resistência/tentativa de fuga?',hint:'Ex: colaboraram prontamente; obedeceu à ordem de parada sem resistência; tentou evadir-se mas foi alcançado...',stf:false,ck:false},
+{id:'p10',num:'P10',titulo:'Integridade Física do Preso',q:'Qual o estado físico dos presos no momento da abordagem e da apresentação nesta DPF? Houve uso de força?',hint:'Ex: apresentavam bom estado físico, sem lesões aparentes; não houve necessidade de uso de força; abordagem transcorreu sem incidentes...',stf:false,ck:false},
+{id:'p11',num:'P11',titulo:'Providências Adotadas',q:'Quais providências foram tomadas?',hint:'Ex: dada voz de prisão em flagrante; conduzidos à DPF Bauru; veículo encaminhado à RFB; apresentados termos de retenção e apreensão...',stf:false,ck:false},
+{id:'p12',num:'P12',titulo:'Complemento Livre',q:'Deseja acrescentar algo mais às suas declarações?',hint:'Qualquer informação relevante não abordada nas perguntas anteriores. Se nada a acrescentar, pode avançar em branco.',stf:false,ck:false}
+];
+var TOTAL_STEPS=PERGS.length+1; // +1 for P1
+
+// ============================================
+// STATE
+// ============================================
+var ST={ident:{},resps:{},wizIdx:0,v1:'',v2:'',v1Blocks:[],activeTab:0};
+
+// ============================================
+// CRYPTO
+// ============================================
+async function decryptEK(pwd){
+try{
+var pts=EK.split(':');
+var salt=hex2buf(pts[0]),iv=hex2buf(pts[1]),ct=hex2buf(pts[2]);
+var km=await crypto.subtle.importKey('raw',new TextEncoder().encode(pwd),'PBKDF2',false,['deriveKey']);
+var dk=await crypto.subtle.deriveKey({name:'PBKDF2',salt:salt,iterations:100000,hash:'SHA-256'},km,{name:'AES-GCM',length:256},false,['decrypt']);
+var dec=await crypto.subtle.decrypt({name:'AES-GCM',iv:iv},dk,ct);
+return new TextDecoder().decode(dec);
+}catch(e){return null;}
+}
+function hex2buf(h){var b=new Uint8Array(h.length/2);for(var i=0;i<h.length;i+=2)b[i/2]=parseInt(h.substr(i,2),16);return b;}
+
+// ============================================
+// LOGIN
+// ============================================
+async function doLogin(){
+var s=document.getElementById('inpSenha').value.trim();
+if(!s){shake('inpSenha');return;}
+var k=await decryptEK(s);
+if(!k){document.getElementById('loginErr').textContent='Senha incorreta.';document.getElementById('loginErr').classList.remove('hidden');shake('inpSenha');return;}
+API_KEY=k;
+showScreen('tHome');
+checkSaved();
+}
+document.getElementById('inpSenha').addEventListener('keydown',function(e){if(e.key==='Enter')doLogin();});
+
+// ============================================
+// SCREENS
+// ============================================
+function showScreen(id){
+['tLogin','tHome','tIdent','tWizard','tResult','tAdmin'].forEach(function(s){document.getElementById(s).classList.add('hidden');});
+document.getElementById(id).classList.remove('hidden');
+window.scrollTo(0,0);
+}
+
+// ============================================
+// ADMIN
+// ============================================
+function adminTap(){
+adminTaps++;
+clearTimeout(adminTimer);
+adminTimer=setTimeout(function(){adminTaps=0;},2000);
+if(adminTaps>=5){adminTaps=0;document.getElementById('admEK').value=EK;showScreen('tAdmin');}
+}
+function salvarEK(){
+var nk=document.getElementById('admEK').value.trim();
+if(!nk){alert('EK vazia.');return;}
+EK=nk;
+localStorage.setItem('oitivaEK',nk);
+alert('EK atualizada. Recarregue e faça login novamente.');
+showScreen('tLogin');
+}
+(function(){var ek=localStorage.getItem('oitivaEK');if(ek)EK=ek;})();
+
+// ============================================
+// TTS
+// ============================================
+function toggleTTS(){ttsOn=!ttsOn;document.querySelectorAll('.tts-toggle').forEach(function(b){b.textContent=ttsOn?'🔊':'🔇';});}
+function speak(txt,cb){
+if(!ttsOn){if(cb)cb();return;}
+window.speechSynthesis.cancel();
+var u=new SpeechSynthesisUtterance(txt);
+u.lang='pt-BR';u.rate=1.05;
+u.onend=function(){if(cb)cb();};
+u.onerror=function(){if(cb)cb();};
+window.speechSynthesis.speak(u);
+}
+
+// ============================================
+// STT (SPEECH RECOGNITION)
+// ============================================
+var recog=null,shouldRestart=false,sttTarget=null,sttTimeout=null;
+function initSTT(){
+var SR=window.SpeechRecognition||window.webkitSpeechRecognition;
+if(!SR){alert('Navegador não suporta reconhecimento de voz.');return false;}
+recog=new SR();
+recog.lang='pt-BR';recog.continuous=false;recog.interimResults=true;
+recog.onresult=function(e){
+var t='';for(var i=0;i<e.results.length;i++){t+=e.results[i][0].transcript;}
+if(sttTarget)sttTarget.value=t;
+};
+recog.onend=function(){
+clearTimeout(sttTimeout);
+if(shouldRestart){try{recog.start();}catch(e){stopDic();}}
+};
+recog.onerror=function(e){
+if(e.error==='no-speech'&&shouldRestart){return;}
+if(e.error==='not-allowed'){alert('Permissão de microfone negada.');stopDic();}
+};
+return true;
+}
+function startDic(){
+if(!recog&&!initSTT())return;
+var btn=document.getElementById('btnMic');
+if(shouldRestart){stopDic();return;}
+sttTarget=document.getElementById('dicTxt');
+sttTarget.value='';
+document.getElementById('dicArea').classList.remove('hidden');
+document.getElementById('btnRevAudio').classList.remove('hidden');
+document.getElementById('btnRevAudio').textContent='🤖 Revisar com IA';
+shouldRestart=true;
+btn.textContent='🔴 Parar';btn.classList.add('mic-on');
+beepStart();
+try{recog.start();}catch(e){}
+sttTimeout=setTimeout(function(){stopDic();},120000);
+}
+function stopDic(){
+shouldRestart=false;
+clearTimeout(sttTimeout);
+try{recog.stop();}catch(e){}
+var btn=document.getElementById('btnMic');
+btn.textContent='🎤 Ditar';btn.classList.remove('mic-on');
+beepStop();
+}
+function dicInsert(){
+var txt=document.getElementById('dicTxt').value.trim();
+if(!txt)return;
+var cur=document.getElementById('wizTxt').value.trim();
+document.getElementById('wizTxt').value=cur?(cur+'\n'+txt):txt;
+document.getElementById('dicArea').classList.add('hidden');
+document.getElementById('dicTxt').value='';
+stopDic();
+beepOk();
+document.getElementById('wizTxt').scrollIntoView({behavior:'smooth',block:'center'});
+}
+function dicDiscard(){
+document.getElementById('dicArea').classList.add('hidden');
+document.getElementById('dicTxt').value='';
+stopDic();
+}
+async function dicRevAI(){
+var txt=document.getElementById('dicTxt').value.trim();
+if(!txt){alert('Nada para revisar.');return;}
+var btn=document.getElementById('btnRevAudio');
+btn.disabled=true;btn.innerHTML='<span class="spinner"></span> Revisando...';
+var ctx=buildCtxResumo();
+var prompt='Você é assistente de um Escrivão da Polícia Federal de Bauru/SP.\n'+
+'Revise o texto abaixo, que foi ditado por voz por um policial durante depoimento.\n'+
+'Corrija gramática, pontuação e torne a linguagem mais formal e coesa.\n'+
+'NÃO altere fatos, nomes, números, placas ou informações substantivas.\n'+
+'Retorne APENAS o texto revisado, sem explicações.\n\n'+
+'CONTEXTO:\n'+ctx+'\n\nTEXTO DITADO:\n'+txt;
+var resp=await callGemini(prompt);
+btn.disabled=false;
+if(resp){
+document.getElementById('dicTxt').value=resp;
+btn.textContent='✅ Revisado';
+btn.classList.remove('btn-pri');btn.classList.add('btn-ok');
+}else{
+btn.textContent='🤖 Revisar com IA';
+alert('Erro ao revisar. Tente novamente.');
+}
+}
+
+// ============================================
+// GEMINI API
+// ============================================
+async function callGemini(prompt){
+try{
+var r=await fetch(API_URL+'?key='+API_KEY,{
+method:'POST',
+headers:{'Content-Type':'application/json'},
+body:JSON.stringify({contents:[{parts:[{text:prompt}]}],generationConfig:{temperature:0.3,maxOutputTokens:8192}})
+});
+var d=await r.json();
+if(d.candidates&&d.candidates[0]&&d.candidates[0].content)
+return d.candidates[0].content.parts[0].text.trim();
+console.error('Gemini resp:',d);return null;
+}catch(e){console.error('Gemini err:',e);return null;}
+}
+
+// ============================================
+// BUILD CONTEXT
+// ============================================
+function buildCtxResumo(){
+var c='Depoente: '+((ST.ident.nome||''))+', '+(ST.ident.posto||'')+', Lotação: '+(ST.ident.lotacao||'')+'\n';
+c+='Procedimento: '+(ST.ident.proc||'N/I')+'\n';
+PERGS.forEach(function(p,i){
+if(ST.resps[p.id]){c+= p.num+' ('+p.titulo+'): '+ST.resps[p.id]+'\n';}
+});
+return c;
+}
+
+// ============================================
+// HOME
+// ============================================
+function checkSaved(){
+var s=localStorage.getItem(LS_KEY);
+if(s){document.getElementById('btnContinuar').classList.remove('hidden');}
+}
+function novaDec(){
+ST={ident:{},resps:{},wizIdx:0,v1:'',v2:'',v1Blocks:[],activeTab:0};
+var now=new Date();
+document.getElementById('idData').value=now.toISOString().slice(0,10);
+document.getElementById('idHora').value=now.toTimeString().slice(0,5);
+['idNome','idPosto','idCPF','idRE','idLot','idProc'].forEach(function(id){document.getElementById(id).value='';});
+showScreen('tIdent');
+renderProgress(0);
+}
+function continuarDec(){
+try{
+var s=JSON.parse(localStorage.getItem(LS_KEY));
+if(s){ST=s;restoreState();}
+}catch(e){alert('Erro ao restaurar.');novaDec();}
+}
+
+// ============================================
+// CPF MASK
+// ============================================
+document.getElementById('idCPF').addEventListener('input',function(e){
+var v=e.target.value.replace(/\D/g,'').slice(0,11);
+if(v.length>9)v=v.replace(/(\d{3})(\d{3})(\d{3})(\d+)/,'$1.$2.$3-$4');
+else if(v.length>6)v=v.replace(/(\d{3})(\d{3})(\d+)/,'$1.$2.$3');
+else if(v.length>3)v=v.replace(/(\d{3})(\d+)/,'$1.$2');
+e.target.value=v;
+});
+
+// ============================================
+// PROGRESS BAR
+// ============================================
+function renderProgress(active){
+['progBar','progBar2'].forEach(function(id){
+var el=document.getElementById(id);if(!el)return;
+el.innerHTML='';
+for(var i=0;i<TOTAL_STEPS;i++){
+var d=document.createElement('div');d.className='dot';
+if(i<active)d.classList.add('done');
+if(i===active)d.classList.add('active');
+el.appendChild(d);
+}
+});
+}
+
+// ============================================
+// P1 → WIZARD
+// ============================================
+function iniciarWizard(){
+var n=document.getElementById('idNome').value.trim();
+var p=document.getElementById('idPosto').value.trim();
+var c=document.getElementById('idCPF').value.trim();
+if(!n){shake('idNome');return;}
+if(!p){shake('idPosto');return;}
+if(!c){shake('idCPF');return;}
+ST.ident={
+nome:n,posto:p,cpf:c,
+re:document.getElementById('idRE').value.trim(),
+lotacao:document.getElementById('idLot').value.trim(),
+proc:document.getElementById('idProc').value.trim(),
+data:document.getElementById('idData').value,
+hora:document.getElementById('idHora').value
+};
+ST.wizIdx=0;
+showScreen('tWizard');
+renderWiz();
+autoSave();
+}
+
+// ============================================
+// WIZARD
+// ============================================
+function renderWiz(){
+var idx=ST.wizIdx;
+var pg=PERGS[idx];
+renderProgress(idx+1);
+document.getElementById('wizSub').textContent=pg.num+' — '+pg.titulo;
+document.getElementById('wizNum').textContent=pg.num+' de '+(PERGS.length+1);
+document.getElementById('wizQ').textContent=pg.q;
+document.getElementById('wizHint').textContent=pg.hint;
+// STF
+document.getElementById('wizStf').classList.toggle('hidden',!pg.stf);
+// Checkboxes
+if(pg.ck){
+document.getElementById('wizCks').classList.remove('hidden');
+var g=document.getElementById('ckGroup');g.innerHTML='';
+pg.opts.forEach(function(opt,i){
+var checked=ST.resps[pg.id+'_ck']&&ST.resps[pg.id+'_ck'].indexOf(opt)>-1;
+var d=document.createElement('div');d.className='ck-item'+(checked?' checked':'');
+d.innerHTML='<input type="checkbox" id="ck'+i+'" '+(checked?'checked':'')+'><span>'+opt+'</span>';
+d.onclick=function(e){
+if(e.target.tagName==='INPUT')return;
+var cb=d.querySelector('input');cb.checked=!cb.checked;
+d.classList.toggle('checked',cb.checked);
+saveCks();
+};
+d.querySelector('input').onchange=function(){d.classList.toggle('checked',this.checked);saveCks();};
+g.appendChild(d);
+});
+}else{document.getElementById('wizCks').classList.add('hidden');}
+// Textarea
+document.getElementById('wizTxt').value=ST.resps[pg.id]||'';
+// Confirmed resp
+var r=ST.resps[pg.id];
+if(r){document.getElementById('wizResp').textContent=r;document.getElementById('wizResp').classList.remove('hidden');}
+else{document.getElementById('wizResp').classList.add('hidden');}
+// Dictation reset
+document.getElementById('dicArea').classList.add('hidden');
+document.getElementById('dicTxt').value='';
+stopDic();
+// Nav buttons
+document.getElementById('btnVoltar').classList.toggle('hidden',idx===0);
+document.getElementById('btnNext').textContent=idx===PERGS.length-1?'Gerar Termo ▶':'Próximo →';
+// Read question
+speak(pg.q);
+setTimeout(function(){document.getElementById('wizCard').scrollIntoView({behavior:'smooth',block:'start'});},100);
+}
+function saveCks(){
+var pg=PERGS[ST.wizIdx];
+var checked=[];
+document.querySelectorAll('#ckGroup input:checked').forEach(function(cb,i){
+checked.push(pg.opts[Array.from(document.querySelectorAll('#ckGroup input')).indexOf(cb)]);
+});
+ST.resps[pg.id+'_ck']=checked;
+autoSave();
+}
+function wizBack(){
+if(ST.wizIdx>0){saveCurrentResp();ST.wizIdx--;renderWiz();}
+}
+function wizNext(){
+saveCurrentResp();
+var pg=PERGS[ST.wizIdx];
+// Auto-insert pending dictation
+var pending=document.getElementById('dicTxt').value.trim();
+if(pending){
+var cur=document.getElementById('wizTxt').value.trim();
+document.getElementById('wizTxt').value=cur?(cur+'\n'+pending):pending;
+saveCurrentResp();
+}
+// P12 can be blank
+if(ST.wizIdx<PERGS.length-1&&!ST.resps[pg.id]&&pg.id!=='p12'){
+shake('wizTxt');return;
+}
+if(ST.wizIdx===PERGS.length-1){
+// Generate
+gerarResultado();
+}else{
+ST.wizIdx++;
+renderWiz();
+autoSave();
+}
+}
+function saveCurrentResp(){
+var pg=PERGS[ST.wizIdx];
+var txt=document.getElementById('wizTxt').value.trim();
+// For P3, prepend checked options
+if(pg.ck){
+var cks=ST.resps[pg.id+'_ck']||[];
+if(cks.length||txt){
+var full='';
+if(cks.length)full='['+cks.join('; ')+']. ';
+if(txt)full+=txt;
+ST.resps[pg.id]=full.trim();
+}
+}else{
+if(txt)ST.resps[pg.id]=txt;
+}
+if(ST.resps[pg.id]){
+respTimestamps[pg.id]=respTimestamps[pg.id]||stampNow();
+document.getElementById('wizResp').innerHTML=escHtml(ST.resps[pg.id])+'<br><span class="ts-badge">⏱ Firmado às '+respTimestamps[pg.id]+'</span>';
+document.getElementById('wizResp').classList.remove('hidden');
+}
+autoSave();
+}
+
+// ============================================
+// GENERATE V1 + V2
+// ============================================
+async function gerarResultado(){
+showLoading('Gerando Termo de Declaração...');
+// V1 - local
+var v1Blocks=[];
+PERGS.forEach(function(pg){
+v1Blocks.push({num:pg.num,titulo:pg.titulo,q:pg.q,resp:ST.resps[pg.id]||'(Não respondido)',ts:respTimestamps[pg.id]||''});
+});
+ST.v1Blocks=v1Blocks;
+// V2 - AI
+var ctx='DADOS DO DEPOENTE:\n';
+ctx+='Nome: '+ST.ident.nome+'\n';
+ctx+='Posto/Patente: '+ST.ident.posto+'\n';
+ctx+='CPF: '+ST.ident.cpf+'\n';
+ctx+='RE/Matrícula: '+(ST.ident.re||'N/I')+'\n';
+ctx+='Lotação: '+(ST.ident.lotacao||'N/I')+'\n';
+ctx+='Procedimento: '+(ST.ident.proc||'N/I')+'\n';
+ctx+='Data/Hora: '+(ST.ident.data||'')+' '+(ST.ident.hora||'')+'\n\n';
+ctx+='RESPOSTAS DO DEPOENTE:\n';
+PERGS.forEach(function(pg){
+ctx+=pg.num+' ('+pg.titulo+'): '+(ST.resps[pg.id]||'Nada declarado')+'\n';
+});
+var prompt='Você é assistente jurídico de Escrivão da Polícia Federal — DPF/BRU/SP (Bauru/SP).\n\n'+
+'Com base nas respostas abaixo, gere um TERMO DE DECLARAÇÃO formal no formato padrão da Polícia Federal.\n\n'+
+'FORMATO OBRIGATÓRIO:\n'+
+'O texto deve iniciar com:\n'+
+'"...o(a) depoente foi alertado(a) do compromisso de dizer a verdade e, inquirido(a) a respeito dos fatos, RESPONDEU:"\n\n'+
+'Em seguida, cada declaração deve começar com "QUE" e ser separada por ponto e vírgula.\n'+
+'Exemplo: QUE é policial militar há 16 anos...; QUE na data dos fatos...; QUE ao abordar o veículo...\n\n'+
+'REGRAS:\n'+
+'- Tom formal, terceira pessoa ("O depoente", "O declarante")\n'+
+'- NÃO invente fatos — use APENAS o que consta nas respostas\n'+
+'- Mantenha nomes, números, placas, datas, CPFs EXATAMENTE como informados\n'+
+'- Organize cronologicamente\n'+
+'- Inclua informações sobre integridade física dos presos e colaboração/resistência\n'+
+'- Finalize com: "Nada mais havendo a declarar, foi encerrado o presente termo, que depois de lido e achado conforme, vai assinado pelo(a) declarante."\n'+
+'- Retorne APENAS o texto do termo, sem explicações\n\n'+
+ctx;
+var v2=await callGemini(prompt);
+hideLoading();
+if(!v2){alert('Erro ao gerar termo. Tente novamente.');return;}
+ST.v2=v2;
+autoSave();
+renderResult();
+showScreen('tResult');
+}
+
+// ============================================
+// RENDER RESULT
+// ============================================
+function renderResult(){
+// V1
+var el=document.getElementById('panelV1');el.innerHTML='';
+ST.v1Blocks.forEach(function(b,i){
+var div=document.createElement('div');div.className='result-block';div.id='v1b'+i;
+div.innerHTML='<h4>'+b.num+' — '+b.titulo+(b.ts?' <span class="ts-badge">⏱ '+b.ts+'</span>':'')+'</h4>'+
+'<div class="result-text" id="v1t'+i+'">'+escHtml(b.resp)+'</div>'+
+'<div class="rev-area">'+
+'<h4>Retificar / Complementar</h4>'+
+'<div class="btn-row">'+
+'<button class="btn btn-sm btn-pri" onclick="startDicV1('+i+')">🎤 Ditar</button>'+
+'<button class="btn btn-sm btn-ghost" onclick="editManV1('+i+')">✏️ Editar</button>'+
+'</div>'+
+'<div id="v1dic'+i+'" class="dict-area hidden">'+
+'<textarea id="v1dt'+i+'" placeholder="Transcrição / instrução..."></textarea>'+
+'<div class="dict-btns">'+
+'<button class="btn btn-ok btn-sm" onclick="v1DicInsert('+i+')">✅ Inserir</button>'+
+'<button class="btn btn-pri btn-sm" id="v1rev'+i+'" onclick="v1DicRevAI('+i+')">🤖 Revisar com IA</button>'+
+'<button class="btn btn-err btn-sm" onclick="v1DicDiscard('+i+')">✖ Descartar</button>'+
+'</div></div>'+
+'<div id="v1edit'+i+'" class="hidden" style="margin-top:8px">'+
+'<textarea id="v1et'+i+'" rows="4">'+escHtml(b.resp)+'</textarea>'+
+'<div class="btn-row"><button class="btn btn-ok btn-sm" onclick="v1EditSave('+i+')">✅ Salvar</button>'+
+'<button class="btn btn-ghost btn-sm" onclick="v1EditCancel('+i+')">Cancelar</button></div>'+
+'</div></div>';
+el.appendChild(div);
+});
+// V2
+var el2=document.getElementById('panelV2');el2.innerHTML='';
+el2.innerHTML='<div class="result-block">'+
+'<h4>📄 Termo de Declaração</h4>'+
+'<div class="result-text" id="v2text">'+escHtml(ST.v2)+'</div>'+
+'<div class="rev-area">'+
+'<h4>Retificar / Complementar</h4>'+
+'<div class="btn-row">'+
+'<button class="btn btn-sm btn-pri" onclick="startDicV2()">🎤 Ditar</button>'+
+'<button class="btn btn-sm btn-ghost" onclick="editManV2()">✏️ Editar</button>'+
+'</div>'+
+'<div id="v2dic" class="dict-area hidden">'+
+'<textarea id="v2dt" placeholder="Descreva a alteração desejada..."></textarea>'+
+'<div class="dict-btns">'+
+'<button class="btn btn-ok btn-sm" onclick="v2DicInsert()">✅ Inserir instrução</button>'+
+'<button class="btn btn-pri btn-sm" id="v2revBtn" onclick="v2DicRevAI()">🤖 Atualizar Termo com IA</button>'+
+'<button class="btn btn-err btn-sm" onclick="v2DicDiscard()">✖ Descartar</button>'+
+'</div></div>'+
+'<div id="v2edit" class="hidden" style="margin-top:8px">'+
+'<textarea id="v2et" rows="8">'+escHtml(ST.v2)+'</textarea>'+
+'<div class="btn-row"><button class="btn btn-ok btn-sm" onclick="v2EditSave()">✅ Salvar</button>'+
+'<button class="btn btn-ghost btn-sm" onclick="v2EditCancel()">Cancelar</button></div>'+
+'</div></div></div>';
+// Show correct tab
+switchTab(ST.activeTab||0);
+}
+
+// ============================================
+// TABS
+// ============================================
+function switchTab(n){
+ST.activeTab=n;
+document.getElementById('tab0').classList.toggle('active',n===0);
+document.getElementById('tab1').classList.toggle('active',n===1);
+document.getElementById('panelV1').classList.toggle('hidden',n!==0);
+document.getElementById('panelV2').classList.toggle('hidden',n!==1);
+}
+
+// ============================================
+// V1 REVISION (per block)
+// ============================================
+var v1Recog=null,v1ShouldRestart=false,v1ActiveIdx=-1;
+function startDicV1(i){
+var area=document.getElementById('v1dic'+i);
+if(!area.classList.contains('hidden')){v1StopDic(i);return;}
+// close others
+document.querySelectorAll('[id^=v1dic]').forEach(function(el){el.classList.add('hidden');});
+area.classList.remove('hidden');
+document.getElementById('v1dt'+i).value='';
+// reset button
+var rb=document.getElementById('v1rev'+i);
+rb.textContent='🤖 Revisar com IA';rb.classList.remove('btn-ok');rb.classList.add('btn-pri');rb.disabled=false;
+// Start STT
+v1ActiveIdx=i;
+if(!v1Recog){
+var SR=window.SpeechRecognition||window.webkitSpeechRecognition;
+if(!SR){alert('Navegador não suporta reconhecimento de voz.');return;}
+v1Recog=new SR();v1Recog.lang='pt-BR';v1Recog.continuous=false;v1Recog.interimResults=true;
+v1Recog.onresult=function(e){
+var t='';for(var j=0;j<e.results.length;j++)t+=e.results[j][0].transcript;
+if(v1ActiveIdx>=0)document.getElementById('v1dt'+v1ActiveIdx).value=t;
+};
+v1Recog.onend=function(){if(v1ShouldRestart)try{v1Recog.start();}catch(e){}};
+v1Recog.onerror=function(e){if(e.error!=='no-speech')v1StopDic(v1ActiveIdx);};
+}
+v1ShouldRestart=true;
+try{v1Recog.start();}catch(e){}
+beepStart();
+}
+function v1StopDic(i){v1ShouldRestart=false;try{v1Recog.stop();}catch(e){};beepStop();}
+function v1DicInsert(i){
+var txt=document.getElementById('v1dt'+i).value.trim();
+if(!txt)return;
+ST.v1Blocks[i].resp=txt;
+ST.resps[PERGS[i].id]=txt;
+document.getElementById('v1t'+i).textContent=txt;
+document.getElementById('v1dic'+i).classList.add('hidden');
+v1StopDic(i);autoSave();
+beepOk();
+}
+function v1DicDiscard(i){document.getElementById('v1dic'+i).classList.add('hidden');v1StopDic(i);}
+async function v1DicRevAI(i){
+var txt=document.getElementById('v1dt'+i).value.trim();
+if(!txt){alert('Nada para revisar.');return;}
+var btn=document.getElementById('v1rev'+i);
+btn.disabled=true;btn.innerHTML='<span class="spinner"></span>';
+var current=ST.v1Blocks[i].resp;
+var prompt='Aplique EXATAMENTE o que o usuário pede na instrução abaixo ao texto do bloco.\n'+
+'Mantenha todo o restante inalterado — só modifique o necessário.\n'+
+'NÃO invente informações além do que o usuário instruiu.\n'+
+'Mantenha tom formal.\nRetorne APENAS o texto revisado.\n\n'+
+'TEXTO ATUAL DO BLOCO ('+PERGS[i].num+' — '+PERGS[i].titulo+'):\n'+current+'\n\n'+
+'INSTRUÇÃO DO USUÁRIO:\n'+txt;
+var resp=await callGemini(prompt);
+btn.disabled=false;
+if(resp){
+document.getElementById('v1dt'+i).value=resp;
+btn.textContent='✅ Revisado';btn.classList.remove('btn-pri');btn.classList.add('btn-ok');
+}else{btn.textContent='🤖 Revisar com IA';alert('Erro. Tente novamente.');}
+}
+function editManV1(i){
+document.getElementById('v1edit'+i).classList.toggle('hidden');
+document.getElementById('v1et'+i).value=ST.v1Blocks[i].resp;
+}
+function v1EditSave(i){
+var txt=document.getElementById('v1et'+i).value.trim();
+if(!txt)return;
+ST.v1Blocks[i].resp=txt;ST.resps[PERGS[i].id]=txt;
+document.getElementById('v1t'+i).textContent=txt;
+document.getElementById('v1edit'+i).classList.add('hidden');
+autoSave();
+}
+function v1EditCancel(i){document.getElementById('v1edit'+i).classList.add('hidden');}
+
+// ============================================
+// V2 REVISION
+// ============================================
+var v2Recog=null,v2ShouldRestart=false;
+function startDicV2(){
+var area=document.getElementById('v2dic');
+if(!area.classList.contains('hidden')){v2StopDic();return;}
+area.classList.remove('hidden');
+document.getElementById('v2dt').value='';
+var rb=document.getElementById('v2revBtn');
+rb.textContent='🤖 Atualizar Termo com IA';rb.classList.remove('btn-ok');rb.classList.add('btn-pri');rb.disabled=false;
+if(!v2Recog){
+var SR=window.SpeechRecognition||window.webkitSpeechRecognition;
+if(!SR){alert('Navegador não suporta reconhecimento de voz.');return;}
+v2Recog=new SR();v2Recog.lang='pt-BR';v2Recog.continuous=false;v2Recog.interimResults=true;
+v2Recog.onresult=function(e){
+var t='';for(var j=0;j<e.results.length;j++)t+=e.results[j][0].transcript;
+document.getElementById('v2dt').value=t;
+};
+v2Recog.onend=function(){if(v2ShouldRestart)try{v2Recog.start();}catch(e){}};
+v2Recog.onerror=function(e){if(e.error!=='no-speech')v2StopDic();};
+}
+v2ShouldRestart=true;
+try{v2Recog.start();}catch(e){}
+beepStart();
+}
+function v2StopDic(){v2ShouldRestart=false;try{v2Recog.stop();}catch(e){};beepStop();}
+function v2DicInsert(){
+var txt=document.getElementById('v2dt').value.trim();
+if(!txt)return;
+ST.v2=txt;
+document.getElementById('v2text').textContent=txt;
+document.getElementById('v2dic').classList.add('hidden');
+v2StopDic();autoSave();
+beepOk();
+}
+function v2DicDiscard(){document.getElementById('v2dic').classList.add('hidden');v2StopDic();}
+async function v2DicRevAI(){
+var txt=document.getElementById('v2dt').value.trim();
+if(!txt){alert('Descreva a alteração desejada.');return;}
+var btn=document.getElementById('v2revBtn');
+btn.disabled=true;btn.innerHTML='<span class="spinner"></span> Atualizando...';
+var prompt='Aplique EXATAMENTE o que o usuário pede na instrução abaixo ao Termo de Declaração.\n'+
+'Mantenha todo o restante do texto inalterado — só modifique o necessário.\n'+
+'NÃO invente informações além do que o usuário instruiu.\n'+
+'Mantenha o formato "QUE...;QUE..." e tom formal jurídico.\n'+
+'Retorne APENAS o texto revisado.\n\n'+
+'TERMO ATUAL:\n'+ST.v2+'\n\nINSTRUÇÃO DO USUÁRIO:\n'+txt;
+var resp=await callGemini(prompt);
+btn.disabled=false;
+if(resp){
+document.getElementById('v2dt').value=resp;
+btn.textContent='✅ Atualizado';btn.classList.remove('btn-pri');btn.classList.add('btn-ok');
+}else{btn.textContent='🤖 Atualizar Termo com IA';alert('Erro. Tente novamente.');}
+}
+function editManV2(){
+document.getElementById('v2edit').classList.toggle('hidden');
+document.getElementById('v2et').value=ST.v2;
+}
+function v2EditSave(){
+var txt=document.getElementById('v2et').value.trim();
+if(!txt)return;
+ST.v2=txt;
+document.getElementById('v2text').textContent=txt;
+document.getElementById('v2edit').classList.add('hidden');
+autoSave();
+}
+function v2EditCancel(){document.getElementById('v2edit').classList.add('hidden');}
+
+// ============================================
+// COPY / WHATSAPP
+// ============================================
+function getActiveText(){
+if(ST.activeTab===0){
+var t='';ST.v1Blocks.forEach(function(b){t+=b.num+' — '+b.titulo+'\n'+b.resp+'\n\n';});return t.trim();
+}
+return ST.v2;
+}
+function copiarAtivo(){
+var t=getActiveText();
+navigator.clipboard.writeText(t).then(function(){alert('Copiado!');}).catch(function(){
+var ta=document.createElement('textarea');ta.value=t;document.body.appendChild(ta);ta.select();document.execCommand('copy');document.body.removeChild(ta);alert('Copiado!');
+});
+}
+function enviarWA(){
+var t=getActiveText();
+var url='https://wa.me/'+WA_NUM+'?text='+encodeURIComponent(t);
+window.open(url,'_blank');
+}
+
+// ============================================
+// NOVA DECLARAÇÃO
+// ============================================
+function novaDecConfirm(){
+if(!confirm('Iniciar nova declaração? Os dados atuais serão perdidos.'))return;
+localStorage.removeItem(LS_KEY);
+novaDec();
+}
+
+// ============================================
+// AUTO-SAVE / RESTORE
+// ============================================
+function autoSave(){
+try{localStorage.setItem(LS_KEY,JSON.stringify(ST));}catch(e){}
+}
+function restoreState(){
+// Determine where user was
+if(ST.v2){
+renderResult();showScreen('tResult');
+}else if(ST.wizIdx>0||ST.resps.p2){
+// Restore ident fields
+var id=ST.ident;
+document.getElementById('idNome').value=id.nome||'';
+document.getElementById('idPosto').value=id.posto||'';
+document.getElementById('idCPF').value=id.cpf||'';
+document.getElementById('idRE').value=id.re||'';
+document.getElementById('idLot').value=id.lotacao||'';
+document.getElementById('idProc').value=id.proc||'';
+document.getElementById('idData').value=id.data||'';
+document.getElementById('idHora').value=id.hora||'';
+showScreen('tWizard');renderWiz();
+}else if(ST.ident.nome){
+document.getElementById('idNome').value=ST.ident.nome||'';
+document.getElementById('idPosto').value=ST.ident.posto||'';
+document.getElementById('idCPF').value=ST.ident.cpf||'';
+document.getElementById('idRE').value=ST.ident.re||'';
+document.getElementById('idLot').value=ST.ident.lotacao||'';
+document.getElementById('idProc').value=ST.ident.proc||'';
+document.getElementById('idData').value=ST.ident.data||'';
+document.getElementById('idHora').value=ST.ident.hora||'';
+showScreen('tIdent');renderProgress(0);
+}else{showScreen('tHome');}
+}
+
+// ============================================
+// UTILS
+// ============================================
+function shake(id){var el=document.getElementById(id);el.classList.add('shake');setTimeout(function(){el.classList.remove('shake');},400);}
+function escHtml(s){if(!s)return'';return s.replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;');}
+function showLoading(msg){document.getElementById('loadMsg').textContent=msg||'Processando...';document.getElementById('loadOv').classList.remove('hidden');}
+function hideLoading(){document.getElementById('loadOv').classList.add('hidden');}
+
+// ============================================
+// BEFOREUNLOAD
+// ============================================
+window.addEventListener('beforeunload',function(e){
+if(API_KEY&&(ST.ident.nome||ST.resps.p2)){autoSave();e.preventDefault();e.returnValue='';}
+});
+
+// ============================================
+// INIT
+// ============================================
+(function(){
+showScreen('tLogin');
+document.getElementById('inpSenha').focus();
+})();
+</script>
+</body>
+</html>
