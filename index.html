@@ -192,10 +192,7 @@ input:focus,textarea:focus,select:focus{outline:none;border-color:var(--pri);box
 <!-- Parágrafos (áudio ou texto) -->
 <div style="margin-top:16px">
 <div id="wizPhrases" class="phrases-container"></div>
-<div id="wizPhrasesActs" class="phrases-actions hidden">
-<button class="btn btn-sm btn-pri" onclick="DM.reviewAll('wiz')">🤖 Revisar tudo com IA</button>
-<button class="btn btn-sm btn-err" onclick="DM.discardAll('wiz')">✖ Descartar tudo</button>
-</div>
+
 <div style="margin-top:10px;border-top:1px solid var(--border);padding-top:10px">
 <div class="btn-row">
 <button class="btn btn-sm btn-pri" id="btnMic" onclick="DM.toggle('wiz')">🎤 Ditar parágrafo</button>
@@ -272,9 +269,9 @@ input:focus,textarea:focus,select:focus{outline:none;border-color:var(--pri);box
 // CONFIG
 // ============================================
 var EK='e2102277cb453ba42ef4fd93854f35d2:9f8a727e326f21bf088858b8:7e6803a9dd12f71cba93c9fa8c5679eba561fbdb6565d2527a9e72d3b10cdee0bf1061b3f1befc883d1990d332bbc41497babfc01686ea';
-var MODEL='gemini-2.5-pro';
+var MODEL='gemini-2.5-flash';
 var API_URL='https://generativelanguage.googleapis.com/v1beta/models/'+MODEL+':generateContent';
-var FLASH_MODEL='gemini-2.5-flash';
+var FLASH_MODEL='gemini-2.5-pro';
 var FLASH_URL='https://generativelanguage.googleapis.com/v1beta/models/'+FLASH_MODEL+':generateContent';
 var WA_NUM='551433123124';
 var API_KEY='';
