@@ -191,19 +191,18 @@ input:focus,textarea:focus,select:focus{outline:none;border-color:var(--pri);box
 </div>
 <!-- Parágrafos (áudio ou texto) -->
 <div style="margin-top:16px">
-<div id="wizPhrases" class="phrases-container"></div>
-
-<div style="margin-top:10px;border-top:1px solid var(--border);padding-top:10px">
 <div class="btn-row">
 <button class="btn btn-sm btn-pri" id="btnMic" onclick="DM.toggle('wiz')">🎤 Ditar parágrafo</button>
-<button class="btn btn-sm btn-ghost" id="btnRepeat" onclick="readQ()">🔊 Repetir</button>
+<button class="btn btn-sm btn-ghost" id="btnRepeat" onclick="readQ()">🔊 Repetir pergunta</button>
 </div>
 <div id="wizLiveArea" class="dict-area hidden">
 <textarea id="wizLiveTxt" placeholder="Fale... a transcrição aparece aqui" readonly></textarea>
 <div style="text-align:center;margin-top:4px"><button class="btn btn-sm btn-err" onclick="DM.stop('wiz')">🔴 Parar e salvar parágrafo</button></div>
 </div>
-<label style="margin-top:10px">Ou digite:</label>
-<textarea id="wizTxt" rows="2" placeholder="Digite e clique Adicionar..."></textarea>
+<div id="wizPhrases" class="phrases-container" style="margin-top:8px"></div>
+<div style="margin-top:8px;border-top:1px solid var(--border);padding-top:8px">
+<label>Ou digite:</label>
+<textarea id="wizTxt" rows="2" placeholder="Digite e clique Salvar..."></textarea>
 <button class="btn btn-sm btn-ghost" style="margin-top:6px" onclick="DM.addManual('wiz')">✅ Salvar parágrafo</button>
 </div>
 </div>
