@@ -212,7 +212,7 @@ input:focus,textarea:focus,select:focus{outline:none;border-color:var(--pri);box
 <!-- Nav -->
 <div class="btn-row" style="margin-top:16px">
 <button class="btn btn-ghost" id="btnVoltar" onclick="wizBack()">← Voltar</button>
-<button class="btn btn-pri" id="btnNext" onclick="guardBtn('wn',wizNext)">Próximo →</button>
+<button class="btn btn-ok" id="btnNext" onclick="guardBtn('wn',wizNext)">Próximo →</button>
 </div>
 </div>
 </div>
@@ -553,12 +553,13 @@ cancelEdit:function(ctx,i){this.phrases[ctx][i].editing=false;this.render(ctx);}
 deletePhrase:function(ctx,i){if(!confirm('Excluir este parágrafo?'))return;this.phrases[ctx].splice(i,1);this.persist(ctx);this.render(ctx);},
 reviewPhrase:async function(ctx,i){
  var ph=this.phrases[ctx][i];
- var prompt='Você é assistente de um Escrivão da Polícia Federal de Bauru/SP.\n'+
-  'Revise o texto abaixo, ditado por voz por um policial durante depoimento.\n'+
-  'Corrija gramática, pontuação e torne a linguagem mais formal e coesa.\n'+
-  'NÃO altere fatos, nomes, números, placas ou informações substantivas.\n'+
-  'Retorne APENAS o texto revisado, sem explicações.\n\n'+
-  'CONTEXTO:\n'+buildCtxResumo()+'\n\nTEXTO DITADO:\n'+ph.text;
+ var pgInfo='';
+ if(ctx==='wiz'&&PERGS[ST.wizIdx])pgInfo=' Pergunta atual: '+PERGS[ST.wizIdx].titulo+'.';
+ var prompt='Revise APENAS o texto abaixo, ditado por voz por um policial em depoimento na Polícia Federal.'+pgInfo+'\n'+
+  'Corrija gramática, pontuação e torne a linguagem formal e coesa.\n'+
+  'NÃO resuma. NÃO inclua informações de outras perguntas. NÃO invente nada.\n'+
+  'Retorne APENAS o texto revisado, sem explicações, sem preâmbulos.\n\n'+
+  'TEXTO DITADO:\n'+ph.text;
  ph.text='⏳ Revisando com IA...';this.render(ctx);
  var resp=await callGemini(prompt);
  if(resp){ph.text=resp;ph.reviewed=true;beepOk();}
@@ -620,7 +621,7 @@ _container:function(ctx){
  return document.getElementById('dicPhrases_'+ctx);
 },
 _actsEl:function(ctx){
- if(ctx==='wiz')return document.getElementById('wizPhrasesActs');
+ if(ctx==='wiz')return null;
  return document.getElementById('dicActs_'+ctx);
 },
 _targetField:function(ctx){
@@ -984,6 +985,7 @@ var el2=document.getElementById('panelV2');el2.innerHTML='';
 el2.innerHTML='<div class="result-block">'+
 '<h4>📄 Termo de Declaração</h4>'+
 '<div class="result-text" id="v2text">'+escHtml(ST.v2)+'</div>'+
+'<div style="margin-top:12px"><button class="btn btn-pri" onclick="regenerarTermo()">🔄 Regenerar Termo (usa respostas atuais do V1)</button></div>'+
 '<div class="rev-area">'+
 '<h4>Retificar / Complementar</h4>'+
 '<div class="btn-row">'+
@@ -1111,6 +1113,49 @@ document.getElementById('v2edit').classList.add('hidden');
 autoSave();
 }
 function v2EditCancel(){document.getElementById('v2edit').classList.add('hidden');}
+
+// ============================================
+// REGENERAR TERMO (V1 → V2)
+// ============================================
+async function regenerarTermo(){
+if(!confirm('Regenerar o Termo Completo com base nas respostas atuais do V1?'))return;
+showLoading('Regenerando Termo...');
+var ctx='DADOS DO DEPOENTE:\n';
+ctx+='Nome: '+ST.ident.nome+'\n';
+ctx+='Posto/Patente: '+ST.ident.posto+'\n';
+ctx+='CPF: '+ST.ident.cpf+'\n';
+ctx+='RE/Matrícula: '+(ST.ident.re||'N/I')+'\n';
+ctx+='Lotação: '+(ST.ident.lotacao||'N/I')+'\n';
+ctx+='Procedimento: '+(ST.ident.proc||'N/I')+'\n';
+ctx+='Data/Hora: '+(ST.ident.data||'')+' '+(ST.ident.hora||'')+'\n\n';
+ctx+='RESPOSTAS DO DEPOENTE:\n';
+ST.v1Blocks.forEach(function(b){
+ctx+=b.num+' ('+b.titulo+'): '+b.resp+'\n';
+});
+var prompt='Você é assistente jurídico de Escrivão da Polícia Federal — DPF/BRU/SP (Bauru/SP).\n\n'+
+'Com base nas respostas abaixo, gere um TERMO DE DECLARAÇÃO formal no formato padrão da Polícia Federal.\n\n'+
+'FORMATO OBRIGATÓRIO:\n'+
+'O texto deve iniciar com:\n'+
+'"...o(a) depoente foi alertado(a) do compromisso de dizer a verdade e, inquirido(a) a respeito dos fatos, RESPONDEU:"\n\n'+
+'Em seguida, cada declaração deve começar com "QUE" e ser separada por ponto e vírgula.\n'+
+'Exemplo: QUE é policial militar há 16 anos...; QUE na data dos fatos...; QUE ao abordar o veículo...\n\n'+
+'REGRAS:\n'+
+'- Tom formal, terceira pessoa ("O depoente", "O declarante")\n'+
+'- NÃO invente fatos — use APENAS o que consta nas respostas\n'+
+'- Mantenha nomes, números, placas, datas, CPFs EXATAMENTE como informados\n'+
+'- Organize cronologicamente\n'+
+'- Inclua informações sobre integridade física dos presos e colaboração/resistência\n'+
+'- Finalize com: "Nada mais havendo a declarar, foi encerrado o presente termo, que depois de lido e achado conforme, vai assinado pelo(a) declarante."\n'+
+'- Retorne APENAS o texto do termo, sem explicações\n\n'+
+ctx;
+var v2=await callGemini(prompt);
+hideLoading();
+if(v2){
+ST.v2=v2;autoSave();
+document.getElementById('v2text').textContent=v2;
+beepOk();
+}else{alert('Erro ao regenerar.');}
+}
 
 // ============================================
 // COPY / WHATSAPP
