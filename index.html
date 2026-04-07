@@ -525,15 +525,15 @@ render:function(ctx){
    div.innerHTML='<div class="phrase-num">§'+(i+1)+'</div>'+
     '<textarea id="phedit_'+ctx+'_'+i+'">'+escHtml(ph.text)+'</textarea>'+
     '<div class="phrase-acts">'+
-    '<button class="pa-ok" onclick="DM.saveEdit(''+ctx+'','+i+')">\u2705 Salvar</button>'+
-    '<button onclick="DM.cancelEdit(''+ctx+'','+i+')">Cancelar</button></div>';
+    '<button class="pa-ok" onclick="DM.saveEdit(\''+ctx+'\','+i+')">\u2705 Salvar</button>'+
+    '<button onclick="DM.cancelEdit(\''+ctx+'\','+i+')">Cancelar</button></div>';
   }else{
    div.innerHTML='<div class="phrase-num">§'+(i+1)+(ph.reviewed?' \u2705 revisado':'')+'</div>'+
     '<div class="phrase-text">'+escHtml(ph.text)+'</div>'+
     '<div class="phrase-acts">'+
-    '<button onclick="DM.editPhrase(''+ctx+'','+i+')">\u270f\ufe0f Editar</button>'+
-    '<button class="pa-rev" onclick="DM.reviewPhrase(''+ctx+'','+i+')">\u{1f916} IA</button>'+
-    '<button class="pa-del" onclick="DM.deletePhrase(''+ctx+'','+i+')">\u{1f5d1} Excluir</button></div>';
+    '<button onclick="DM.editPhrase(\''+ctx+'\','+i+')">\u270f\ufe0f Editar</button>'+
+    '<button class="pa-rev" onclick="DM.reviewPhrase(\''+ctx+'\','+i+')">\u{1f916} IA</button>'+
+    '<button class="pa-del" onclick="DM.deletePhrase(\''+ctx+'\','+i+')">\u{1f5d1} Excluir</button></div>';
   }
   cont.appendChild(div);
  });
