@@ -268,10 +268,15 @@ input:focus,textarea:focus,select:focus{outline:none;border-color:var(--pri);box
 // CONFIG
 // ============================================
 var EK='e2102277cb453ba42ef4fd93854f35d2:9f8a727e326f21bf088858b8:7e6803a9dd12f71cba93c9fa8c5679eba561fbdb6565d2527a9e72d3b10cdee0bf1061b3f1befc883d1990d332bbc41497babfc01686ea';
-var MODEL='gemini-2.5-flash';
-var API_URL='https://generativelanguage.googleapis.com/v1beta/models/'+MODEL+':generateContent';
-var FLASH_MODEL='gemini-2.5-pro';
-var FLASH_URL='https://generativelanguage.googleapis.com/v1beta/models/'+FLASH_MODEL+':generateContent';
+var GEMINI_BASE='https://generativelanguage.googleapis.com/v1beta/models/';
+var MODEL_CHAIN=[
+ {name:'2.5-Flash',id:'gemini-2.5-flash'},
+ {name:'2.5-Pro',id:'gemini-2.5-pro'},
+ {name:'2.5-Flash-Lite',id:'gemini-2.5-flash-lite'},
+ {name:'3-Flash',id:'gemini-3-flash'}
+];
+var API_URL=GEMINI_BASE+MODEL_CHAIN[0].id+':generateContent';
+var FLASH_URL=GEMINI_BASE+MODEL_CHAIN[1].id+':generateContent';
 var WA_NUM='551433123124';
 var API_KEY='';
 var ttsOn=true;
@@ -657,45 +662,41 @@ reset:function(ctx){if(this.active===ctx)this.stop(ctx);}
 // ============================================
 // GEMINI API
 // ============================================
-async function _fetchGemini(url,prompt,attempt){
-attempt=attempt||1;
-var model=url.indexOf('flash')>-1?'Flash':'Pro';
-console.log('[IA] '+model+' tentativa '+attempt+'...');
+async function _fetchOne(model,prompt){
+var url=GEMINI_BASE+model.id+':generateContent';
+console.log('[IA] '+model.name+' chamando...');
 var r=await fetch(url+'?key='+API_KEY,{
 method:'POST',
 headers:{'Content-Type':'application/json'},
 body:JSON.stringify({contents:[{parts:[{text:prompt}]}],generationConfig:{temperature:0.3,maxOutputTokens:8192}})
 });
 if(r.status===503||r.status===429){
- if(attempt<3){
-  var wait=attempt*3;
-  console.warn('[IA] '+model+' '+r.status+' — aguardando '+wait+'s (tentativa '+attempt+'/3)');
-  await new Promise(function(ok){setTimeout(ok,wait*1000);});
-  return _fetchGemini(url,prompt,attempt+1);
- }
- console.error('[IA] '+model+' falhou após 3 tentativas');
+ console.warn('[IA] '+model.name+' '+r.status);
  return null;
 }
 var d=await r.json();
 if(d.candidates&&d.candidates[0]&&d.candidates[0].content){
- console.log('[IA] '+model+' OK');
+ console.log('[IA] '+model.name+' ✅ OK');
  return d.candidates[0].content.parts[0].text.trim();
 }
-console.error('[IA] '+model+' resp inesperada:',d);return null;
+console.error('[IA] '+model.name+' resp inesperada:',d);
+return null;
 }
 async function callGemini(prompt){
-try{
-var r=await _fetchGemini(API_URL,prompt);
-if(r)return r;
-console.warn('[IA] Pro sem resultado, tentando Flash...');
-var f=await _fetchGemini(FLASH_URL,prompt);
-if(f)return f;
-console.error('[IA] Ambos falharam');return null;
-}catch(e){
-console.warn('[IA] Pro erro:',e,'— tentando Flash...');
-try{return await _fetchGemini(FLASH_URL,prompt);}
-catch(e2){console.error('[IA] Flash também falhou:',e2);return null;}
+for(var i=0;i<MODEL_CHAIN.length;i++){
+ try{
+  var r=await _fetchOne(MODEL_CHAIN[i],prompt);
+  if(r)return r;
+ }catch(e){
+  console.warn('[IA] '+MODEL_CHAIN[i].name+' erro:',e);
+ }
+ if(i<MODEL_CHAIN.length-1){
+  console.warn('[IA] Próximo modelo em 2s...');
+  await new Promise(function(ok){setTimeout(ok,2000);});
+ }
 }
+console.error('[IA] Todos os '+MODEL_CHAIN.length+' modelos falharam');
+return null;
 }
 
 // ============================================
