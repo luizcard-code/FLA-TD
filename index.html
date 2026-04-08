@@ -275,8 +275,6 @@ var MODEL_CHAIN=[
  {name:'2.5-Flash-Lite',id:'gemini-2.5-flash-lite'},
  {name:'3-Flash (Preview)',id:'gemini-3-flash-preview'}
 ];
-var API_URL=GEMINI_BASE+MODEL_CHAIN[0].id+':generateContent';
-var FLASH_URL=GEMINI_BASE+MODEL_CHAIN[1].id+':generateContent';
 var WA_NUM='551433123124';
 var API_KEY='';
 var ttsOn=true;
@@ -662,18 +660,21 @@ reset:function(ctx){if(this.active===ctx)this.stop(ctx);}
 // ============================================
 // GEMINI API
 // ============================================
+var MAX_RETRIES=2,RETRY_DELAY=3000;
+function _sleep(ms){return new Promise(function(r){setTimeout(r,ms);});}
 async function _fetchOne(model,prompt){
 var url=GEMINI_BASE+model.id+':generateContent';
 console.log('[IA] '+model.name+' chamando...');
-var r=await fetch(url+'?key='+API_KEY,{
+var r=await fetch(url,{
 method:'POST',
-headers:{'Content-Type':'application/json'},
+headers:{'Content-Type':'application/json','x-goog-api-key':API_KEY},
 body:JSON.stringify({contents:[{parts:[{text:prompt}]}],generationConfig:{temperature:0.3,maxOutputTokens:8192}})
 });
-if(r.status===503||r.status===429){
+if(r.status===429||r.status===503){
  console.warn('[IA] '+model.name+' '+r.status);
  return null;
 }
+if(!r.ok)throw new Error(model.name+' HTTP '+r.status);
 var d=await r.json();
 if(d.candidates&&d.candidates[0]&&d.candidates[0].content){
  console.log('[IA] '+model.name+' ✅ OK');
@@ -684,15 +685,21 @@ return null;
 }
 async function callGemini(prompt){
 for(var i=0;i<MODEL_CHAIN.length;i++){
- try{
-  var r=await _fetchOne(MODEL_CHAIN[i],prompt);
-  if(r)return r;
- }catch(e){
-  console.warn('[IA] '+MODEL_CHAIN[i].name+' erro:',e);
+ var m=MODEL_CHAIN[i];
+ for(var t=1;t<=MAX_RETRIES;t++){
+  try{
+   var lbl=m.name+(t>1?' (tent. '+t+'/'+MAX_RETRIES+')':'');
+   console.log('[IA] '+lbl);
+   var r=await _fetchOne(m,prompt);
+   if(r)return r;
+  }catch(e){
+   console.warn('[IA] '+m.name+' erro:',e);
+  }
+  if(t<MAX_RETRIES)await _sleep(RETRY_DELAY);
  }
  if(i<MODEL_CHAIN.length-1){
-  console.warn('[IA] Próximo modelo em 2s...');
-  await new Promise(function(ok){setTimeout(ok,2000);});
+  console.warn('[IA] Próximo modelo em 3s...');
+  await _sleep(RETRY_DELAY);
  }
 }
 console.error('[IA] Todos os '+MODEL_CHAIN.length+' modelos falharam');
